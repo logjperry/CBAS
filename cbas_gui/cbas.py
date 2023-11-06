@@ -528,18 +528,39 @@ class Camera(QWidget):
 
         self.init_ui()
 
+    def resizeEvent(self, event):
+        # This ensures the image rescales with the window resize
+        self.updatePixmap()
+        super().resizeEvent(event)
+
+    def updatePixmap(self):
+        # Scale pixmap to fit the current size and keep its aspect ratio
+        scaled_pixmap = self.pixmap.scaled(self.imageLabel.size(), Qt.KeepAspectRatioByExpanding)
+        self.imageLabel.setPixmap(scaled_pixmap)
+
     
     def init_ui(self):
 
 
         layout = QHBoxLayout()
 
-        image = QWidget()
 
-        image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px; background-image:url("frames/cam1.png"); background-repeat:none;')
+        # Create a label that will contain the image
+        self.imageLabel = QLabel(self)
+        self.imageLabel.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
 
-        self.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px; background-image:url("frames/cam1.png"); background-repeat:none;')
+        # Load the image
+        self.pixmap = QPixmap('frames/cam1.png')
 
+        # Scale the pixmap to fit the current size and keep its aspect ratio
+        scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
+
+        # Set the pixmap to the label
+        self.imageLabel.setPixmap(scaled_pixmap)
+
+
+        #self.setStyleSheet("background-image: url('frames/cam1.jpg'); background-position: center; background-repeat: no-repeat; background-size: cover;")
+       
         isl = (1 - self.sl)/2
 
 
@@ -560,7 +581,7 @@ class Camera(QWidget):
         h = self.frameGeometry().height()
 
         size = int(self.width/5)
-        image.setFixedSize(size,size)
+        self.imageLabel.setFixedSize(size,size)
 
 
         left = int(size*isl)
@@ -594,10 +615,10 @@ class Camera(QWidget):
 
         layout.addWidget(label)
 
-        image.setLayout(layout)
+        self.imageLabel.setLayout(layout)
 
         self.parentlayout = QHBoxLayout()
-        self.parentlayout.addWidget(image)
+        self.parentlayout.addWidget(self.imageLabel)
 
         self.setLayout(self.parentlayout)
     
@@ -705,6 +726,34 @@ class BorderedLabel(QLabel):
 
         super(BorderedLabel, self).paintEvent(event)
 
+class ImageBackgroundWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        # Create a label that will contain the image
+        self.imageLabel = QLabel(self)
+
+        # Load the image
+        self.pixmap = QPixmap('frames/cam1.png')
+
+        # Scale the pixmap to fit the current size and keep its aspect ratio
+        scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
+
+        # Set the pixmap to the label
+        self.imageLabel.setPixmap(scaled_pixmap)
+
+        # Set the layout
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.imageLabel)
+        self.setLayout(layout)
+
+    def resizeEvent(self, event):
+        # This ensures the image rescales with the window resize
+        scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
+        self.imageLabel.setPixmap(scaled_pixmap)
+        super().resizeEvent(event)
 
 if __name__ == '__main__':
     cbas = QApplication(sys.argv)
