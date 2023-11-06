@@ -1,5 +1,6 @@
 import os
 
+
 def frameGen(url,camName):
     
     sysCmd = f'ffmpeg -i {url} -frames:v 1 -y frames/{camName}.png' #builds command to generate the next screenshot
