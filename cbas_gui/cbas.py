@@ -483,12 +483,12 @@ class Crop(QWidget):
         sl = QSlider(Qt.Horizontal)
         cx = QSlider(Qt.Horizontal)
         cy = QSlider(Qt.Horizontal)
-        r = QSlider(Qt.Horizontal)
+        #r = QSlider(Qt.Horizontal)
 
         sl.setFixedSize(int(self.w/4),int(self.h/20))
         cx.setFixedSize(int(self.w/4),int(self.h/20))
         cy.setFixedSize(int(self.w/4),int(self.h/20))
-        r.setFixedSize(int(self.w/4),int(self.h/20))
+        #r.setFixedSize(int(self.w/4),int(self.h/20))
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -496,28 +496,28 @@ class Crop(QWidget):
             cx.setStyleSheet(f.read())
         with open('styles/qslider.qss', 'r') as f:
             cy.setStyleSheet(f.read())
-        with open('styles/qslider.qss', 'r') as f:
-            r.setStyleSheet(f.read())
+        #with open('styles/qslider.qss', 'r') as f:
+        #    r.setStyleSheet(f.read())
 
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
-        r.setRange(0,360)
+        #r.setRange(0,360)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
         cy.setValue(int(self.cy*100))
-        r.setValue(int(self.r))
+        #r.setValue(int(self.r))
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
-        r.valueChanged.connect(lambda:self.setR(r.value()))
+        #r.valueChanged.connect(lambda:self.setR(r.value()))
 
         layout.addWidget(sl)
         layout.addWidget(cx)
         layout.addWidget(cy)
-        layout.addWidget(r)
+        #layout.addWidget(r)
 
 
         parent_layout = QHBoxLayout()
@@ -535,9 +535,9 @@ class Crop(QWidget):
     def setCY(self, val):
         self.parent.cameras[self.parent.current]['cy'] = val/100
         self.parent.update_crop()
-    def setR(self, val):
-        self.parent.cameras[self.parent.current]['r'] = val
-        self.parent.update_crop()
+    #def setR(self, val):
+    #    self.parent.cameras[self.parent.current]['r'] = val
+    #    self.parent.update_crop()
         
 
 
