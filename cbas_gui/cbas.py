@@ -16,6 +16,8 @@ from PyQt5.QtCore import Qt, QRectF
 
 from PyQt5.QtGui import QPainter, QPixmap, QPen, QPalette
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame
+
 
 
 import time
@@ -77,12 +79,9 @@ class CBAS_GUI(QWidget):
         self.cx = cam['cx']
         self.cy = cam['cy']
         self.r = cam['r']
-        # self.make_current(0)
-        self.clear_layout(self.parent_layout)
-        #QTimer.singleShot(1000, lambda: self.clear_layout(self.parent_layout))
-        #QTimer.singleShot(3500, self.load_initial)
 
-        #self.load_main()
+        self.clear_layout(self.parent_layout)
+
     
     def clear_layout(self, layout):
         while layout.count():
@@ -527,6 +526,8 @@ class Camera(QWidget):
 
 
         self.init_ui()
+
+    
     def init_ui(self):
 
 
@@ -536,18 +537,22 @@ class Camera(QWidget):
 
         image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px; background-image:url("frames/cam1.png"); background-repeat:none;')
 
-        #self.setStyleSheet("border: none; background-color:white;")
+        self.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px; background-image:url("frames/cam1.png"); background-repeat:none;')
 
         isl = (1 - self.sl)/2
 
 
 
 
-        label = RotatedLabel(self.r)
-        if self.index!=self.parent.current:
-            label.setStyleSheet("border: 5px solid black; background-color:none;")
+        label = BorderedLabel()
+        # Set transparent background and ensure no system background is drawn
+        label.setAttribute(Qt.WA_NoSystemBackground)
+        label.setAttribute(Qt.WA_TranslucentBackground)
+
+        if self.index != self.parent.current:
+            label.setStyleSheet("border: 5px solid black;")
         else:
-            label.setStyleSheet("border: 5px solid black; background-color:none;")
+            label.setStyleSheet("border: 5px solid black;")
 
 
         w = self.frameGeometry().width()
@@ -679,7 +684,25 @@ class RotatedLabel(QLabel):
             # Draw the border around the QLabel
             painter.drawRect(int(-self.rect().width()/2), int(-self.rect().height()/2), int(self.rect().width()), int(self.rect().height()))
 
+class BorderedLabel(QLabel):
+    def __init__(self, *args, **kwargs):
+        super(BorderedLabel, self).__init__(*args, **kwargs)
+        self.setAttribute(Qt.WA_TranslucentBackground)  # Enable transparent background
 
+    def paintEvent(self, event):
+        # Start by filling the background with a transparent color
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), Qt.transparent)  # Fill the rect with a transparent color
+        
+        # Set up the pen with the color and width of the border
+        pen = QPen(Qt.black)
+        pen.setWidth(5)  # Change the width to the desired border width
+        painter.setPen(pen)
+
+        # Draw a rectangle on the very edge of the widget
+        painter.drawRect(self.rect().adjusted(0, 0, -pen.width(), -pen.width()))
+
+        super(BorderedLabel, self).paintEvent(event)
 
 
 if __name__ == '__main__':
