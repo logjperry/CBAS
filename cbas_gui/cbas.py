@@ -304,7 +304,7 @@ class CBAS_GUI(QWidget):
         text_layout.addStretch(1)
 
 
-        slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.r, self))
+        slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self))
 
         button_layout.addStretch(1)
         save_camera = QPushButton("Save Camera Settings")
@@ -462,12 +462,11 @@ class CBAS_GUI(QWidget):
     
 
 class Crop(QWidget):
-    def __init__(self, sl, cx, cy, r, parent):
+    def __init__(self, sl, cx, cy, parent):
         super().__init__()
         self.sl = sl 
         self.cx = cx
         self.cy = cy 
-        self.r = r
 
         self.w = parent.width
         self.h = parent.height
@@ -483,12 +482,10 @@ class Crop(QWidget):
         sl = QSlider(Qt.Horizontal)
         cx = QSlider(Qt.Horizontal)
         cy = QSlider(Qt.Horizontal)
-        #r = QSlider(Qt.Horizontal)
 
-        sl.setFixedSize(int(self.w/4),int(self.h/20))
-        cx.setFixedSize(int(self.w/4),int(self.h/20))
-        cy.setFixedSize(int(self.w/4),int(self.h/20))
-        #r.setFixedSize(int(self.w/4),int(self.h/20))
+        sl.setFixedSize(int(self.w/3),int(self.h/20))
+        cx.setFixedSize(int(self.w/3),int(self.h/20))
+        cy.setFixedSize(int(self.w/3),int(self.h/20))
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -496,28 +493,22 @@ class Crop(QWidget):
             cx.setStyleSheet(f.read())
         with open('styles/qslider.qss', 'r') as f:
             cy.setStyleSheet(f.read())
-        #with open('styles/qslider.qss', 'r') as f:
-        #    r.setStyleSheet(f.read())
 
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
-        #r.setRange(0,360)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
         cy.setValue(int(self.cy*100))
-        #r.setValue(int(self.r))
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
-        #r.valueChanged.connect(lambda:self.setR(r.value()))
 
         layout.addWidget(sl)
         layout.addWidget(cx)
         layout.addWidget(cy)
-        #layout.addWidget(r)
 
 
         parent_layout = QHBoxLayout()
@@ -535,9 +526,6 @@ class Crop(QWidget):
     def setCY(self, val):
         self.parent.cameras[self.parent.current]['cy'] = val/100
         self.parent.update_crop()
-    #def setR(self, val):
-    #    self.parent.cameras[self.parent.current]['r'] = val
-    #    self.parent.update_crop()
         
 
 
@@ -671,11 +659,10 @@ class Camera(QWidget):
         # Emit the clicked signal
         self.clicked.emit()
 
-    def update_crop(self, sl, cx, cy, r):
+    def update_crop(self, sl, cx, cy):
         self.sl = sl
         self.cx = cx 
-        self.cy = cy 
-        self.r = r
+        self.cy = cy
 
     def clear_layout(self, layout):
         while layout.count():
@@ -723,28 +710,6 @@ class Camera(QWidget):
 
         self.parentlayout.addWidget(image)
 
-
-class RotatedLabel(QLabel):
-    def __init__(self, angle, *args, **kwargs):
-        super(RotatedLabel, self).__init__(*args, **kwargs)
-        self.angle = angle
-
-    def paintEvent(self, event):
-        with QPainter(self) as painter:
-            painter.setRenderHint(QPainter.Antialiasing)
-
-            # Set the pen for the border (from the stylesheet for example)
-            pen = QPen()
-            pen.setWidth(5)
-            pen.setColor(Qt.red)  # Assuming you want a red border as per previous QSS
-            painter.setPen(pen)
-
-            # Apply rotation
-            painter.translate(self.rect().center())
-            painter.rotate(self.angle)
-
-            # Draw the border around the QLabel
-            painter.drawRect(int(-self.rect().width()/2), int(-self.rect().height()/2), int(self.rect().width()), int(self.rect().height()))
 
 class BorderedLabel(QLabel):
     def __init__(self, *args, **kwargs):
