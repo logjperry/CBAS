@@ -68,6 +68,7 @@ class CBAS_GUI(QWidget):
             'cx':0.5,
             'cy':0.5,
             'r':180,
+            'number':1,
             'chunk_size':30
         }]
         
@@ -307,6 +308,7 @@ class CBAS_GUI(QWidget):
             'cx':0.5,
             'cy':0.5,
             'r':180,
+            'number':len(self.cameras)+1,
             'chunk_size':30
         })
         self.make_current(0)
@@ -322,6 +324,7 @@ class CBAS_GUI(QWidget):
         self.cx = cam['cx']
         self.cy = cam['cy']
         self.r = cam['r']
+        self.number = cam['number']
 
         self.clear_layout(self.parent_layout)
         self.load_main()
@@ -547,16 +550,36 @@ class Camera(QWidget):
         # Create a label that will contain the image
         self.imageLabel = QLabel(self)
         self.imageLabel.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
-
+        
         # Load the image
-        self.pixmap = QPixmap('frames/cam1.png')
+        self.pixmap = QPixmap('frames/cam'+str(self.parent.cameras[self.parent.current]['number'])+'.png')
+    
 
         # Scale the pixmap to fit the current size and keep its aspect ratio
         scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
 
         # Set the pixmap to the label
         self.imageLabel.setPixmap(scaled_pixmap)
+        try:
+            # Load the image
+            self.pixmap = QPixmap('frames/cam'+str(self.parent.cameras[self.parent.current]['number'])+'.png')
+        
 
+            # Scale the pixmap to fit the current size and keep its aspect ratio
+            scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
+
+            # Set the pixmap to the label
+            self.imageLabel.setPixmap(scaled_pixmap)
+
+        except:
+            self.pixmap = QPixmap('assets/noimage.png')
+        
+
+            # Scale the pixmap to fit the current size and keep its aspect ratio
+            scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
+
+            # Set the pixmap to the label
+            self.imageLabel.setPixmap(scaled_pixmap)
 
         #self.setStyleSheet("background-image: url('frames/cam1.jpg'); background-position: center; background-repeat: no-repeat; background-size: cover;")
        
@@ -571,9 +594,9 @@ class Camera(QWidget):
         label.setAttribute(Qt.WA_TranslucentBackground)
 
         if self.index != self.parent.current:
-            label.setStyleSheet("border: 5px solid black;")
+            label.setStyleSheet("border: 5px solid red;")
         else:
-            label.setStyleSheet("border: 5px solid black;")
+            label.setStyleSheet("border: 5px solid red;")
 
 
         w = self.frameGeometry().width()
@@ -694,8 +717,8 @@ class RotatedLabel(QLabel):
 
             # Set the pen for the border (from the stylesheet for example)
             pen = QPen()
-            pen.setWidth(2)
-            pen.setColor(Qt.black)  # Assuming you want a red border as per previous QSS
+            pen.setWidth(5)
+            pen.setColor(Qt.red)  # Assuming you want a red border as per previous QSS
             painter.setPen(pen)
 
             # Apply rotation
@@ -716,8 +739,8 @@ class BorderedLabel(QLabel):
         painter.fillRect(self.rect(), Qt.transparent)  # Fill the rect with a transparent color
         
         # Set up the pen with the color and width of the border
-        pen = QPen(Qt.black)
-        pen.setWidth(5)  # Change the width to the desired border width
+        pen = QPen(Qt.red)
+        pen.setWidth(8)  # Change the width to the desired border width
         painter.setPen(pen)
 
         # Draw a rectangle on the very edge of the widget
