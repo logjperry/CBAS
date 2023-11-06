@@ -25,6 +25,7 @@ import ctypes
 import yaml
 import os
 import math
+import streamprocessing
 
 class CBAS_GUI(QWidget):
     def __init__(self):
