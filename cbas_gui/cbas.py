@@ -78,11 +78,11 @@ class CBAS_GUI(QWidget):
         self.cy = cam['cy']
         self.r = cam['r']
         # self.make_current(0)
-        
+        self.clear_layout(self.parent_layout)
         #QTimer.singleShot(1000, lambda: self.clear_layout(self.parent_layout))
         #QTimer.singleShot(3500, self.load_initial)
 
-        self.load_main()
+        #self.load_main()
     
     def clear_layout(self, layout):
         while layout.count():
@@ -239,6 +239,7 @@ class CBAS_GUI(QWidget):
 
         # Main content
         main_layout = self.parent_layout
+        self.clear_layout(main_layout)
 
         camera_scroll = QScrollArea()
         camera_container = QWidget()
@@ -270,7 +271,7 @@ class CBAS_GUI(QWidget):
         if len(self.cameras)<8:
             camera_container_layout.addStretch()
         camera_container.setLayout(camera_container_layout)
-        self.camera_container_layout = camera_container_layout
+        #camera_container_layout = camera_container_layout
         camera_scroll.setWidget(camera_container)
         camera_scroll.setWidgetResizable(True)
 
@@ -280,9 +281,9 @@ class CBAS_GUI(QWidget):
         slider_layout = QHBoxLayout()
         button_layout = QHBoxLayout()
 
-        self.url = QLineEdit(str(self.cameras[self.current]['url']))
-        self.url.setStyleSheet('border: 2px solid black')
-        text_layout.addWidget(self.url)
+        url = QLineEdit(str(self.cameras[self.current]['url']))
+        url.setStyleSheet('border: 2px solid black')
+        text_layout.addWidget(url)
         text_layout.addStretch(1)
 
 
@@ -352,8 +353,11 @@ class CBAS_GUI(QWidget):
         super().resizeEvent(event)
         self.width = self.frameGeometry().width()
         self.height = self.frameGeometry().height()
+
+        self.clear_layout(self.parent_layout)
         self.clear_layout(self.parent_layout)
         self.load_main()
+        self.update()
 
 
     def update_crop(self):
@@ -531,9 +535,9 @@ class Camera(QWidget):
 
         image = QWidget()
 
-        image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
+        image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px; background-image:url("frames/cam1.png"); background-repeat:none;')
 
-        self.setStyleSheet("border: none; background-color:white;")
+        #self.setStyleSheet("border: none; background-color:white;")
 
         isl = (1 - self.sl)/2
 
@@ -611,7 +615,7 @@ class Camera(QWidget):
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
-                child.widget().deleteLater()
+                child.widget().delete()
             elif child.layout():
                 self.clear_layout(child.layout())
         self.update()
