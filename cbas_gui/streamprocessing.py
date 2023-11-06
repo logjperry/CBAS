@@ -1,9 +1,9 @@
 import os
 
 
-def frameGen(url,camName):
+def frameGen(url, brightness, contrast, camName):
     #builds command to capture frame from live feed to display
-    sysCmd = f'ffmpeg -i {url} -frames:v 1 -y frames/{camName}.png' #builds command to generate the next screenshot
+    sysCmd = f'ffmpeg -i {url} -frames:v 1 -vf "eq=brightness={brightness}:contrast={contrast}" -y frames/{camName}.png' #builds command to generate the next screenshot
     os.system(sysCmd) #Grab frame from video file and save to frames folder
     return f'frames/{camName}.png' #returns directory of new screenshot
 
