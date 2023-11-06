@@ -227,7 +227,7 @@ class CBAS_GUI(QWidget):
         # generate pictures
         for c in self.cameras:
             try:
-                streamprocessing.frameGen('test_videos/compilationWTM.mp4','cam'+str(c['number']))
+                streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
             except:
                 continue
         
