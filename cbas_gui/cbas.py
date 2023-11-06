@@ -1,5 +1,5 @@
 import sys
-import vlc
+#import vlc
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QGridLayout, QHBoxLayout, QFileDialog, QInputDialog, QMessageBox
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QToolBar, QPushButton, 
                              QVBoxLayout, QHBoxLayout, QWidget, QLabel, QScrollArea, 
@@ -59,7 +59,7 @@ class CBAS_GUI(QWidget):
         self.resize(800, 800)
 
 
-        self.current = 0
+        # self.current = 0
         self.cameras = [{
             'url':'',
             'sl':1,
@@ -68,15 +68,21 @@ class CBAS_GUI(QWidget):
             'r':180,
             'chunk_size':30
         }]
-        self.make_current(0)
+        
+        self.current = 0
+        cam = self.cameras[0]
+
+        self.url = cam['url']
+        self.sl = cam['sl']
+        self.cx = cam['cx']
+        self.cy = cam['cy']
+        self.r = cam['r']
+        # self.make_current(0)
         
         #QTimer.singleShot(1000, lambda: self.clear_layout(self.parent_layout))
-        self.clear_layout(self.parent_layout)
-        #self.cameras = []
-        self.load_main()
-
-
         #QTimer.singleShot(3500, self.load_initial)
+
+        self.load_main()
     
     def clear_layout(self, layout):
         while layout.count():
@@ -483,16 +489,16 @@ class Crop(QWidget):
         self.setLayout(parent_layout)
 
     def setSL(self, val):
-        self.parent.sl = val/100
+        self.parent.cameras[self.parent.current]['sl'] = val/100
         self.parent.update_crop()
     def setCX(self, val):
-        self.parent.cx = val/100
+        self.parent.cameras[self.parent.current]['cx'] = val/100
         self.parent.update_crop()
     def setCY(self, val):
-        self.parent.cy = val/100
+        self.parent.cameras[self.parent.current]['cy'] = val/100
         self.parent.update_crop()
     def setR(self, val):
-        self.parent.r = val
+        self.parent.cameras[self.parent.current]['r'] = val
         self.parent.update_crop()
         
 
@@ -509,10 +515,10 @@ class Camera(QWidget):
 
         self.cam = parent.cameras[index]
 
-        self.sl = parent.sl
-        self.cx = (parent.cx -.5)*2
-        self.cy = (parent.cy -.5)*2
-        self.r = parent.r
+        self.sl = self.cam['sl']
+        self.cx = (self.cam['cx'] -.5)*2
+        self.cy = (self.cam['cy'] -.5)*2
+        self.r = self.cam['r']
 
         self.parent = parent
 
@@ -536,9 +542,9 @@ class Camera(QWidget):
 
         label = RotatedLabel(self.r)
         if self.index!=self.parent.current:
-            label.setStyleSheet("border: none; background-color:none;")
+            label.setStyleSheet("border: 5px solid black; background-color:none;")
         else:
-            label.setStyleSheet("border: 3px solid black; background-color:none;")
+            label.setStyleSheet("border: 5px solid black; background-color:none;")
 
 
         w = self.frameGeometry().width()
