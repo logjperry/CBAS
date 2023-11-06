@@ -354,7 +354,6 @@ class CBAS_GUI(QWidget):
         self.height = self.frameGeometry().height()
 
         self.clear_layout(self.parent_layout)
-        self.clear_layout(self.parent_layout)
         self.load_main()
         self.update()
 
