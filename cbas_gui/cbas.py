@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, QTimer, QSize, QCoreApplication
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtGui import QTransform
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt, QRectF
@@ -17,6 +18,8 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPainter, QPixmap, QPen, QPalette
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame
+
+import streamprocessing
 
 
 
@@ -36,6 +39,7 @@ class CBAS_GUI(QWidget):
         print("displaying the loading gui")
 
 
+        self.resize(800, 800)
         self.setStyleSheet("background-color: white;")
 
         # https://icons8.com/icon/d6DO5ujKnnen/perch
@@ -59,7 +63,6 @@ class CBAS_GUI(QWidget):
 
         self.setLayout(self.parent_layout)
         self.setWindowTitle('CBAS')
-        self.resize(800, 800)
 
 
         # self.current = 0
@@ -82,24 +85,33 @@ class CBAS_GUI(QWidget):
         self.cy = cam['cy']
         self.r = cam['r']
 
-        self.clear_layout(self.parent_layout)
+        self.mainloaded = False
+
+        QTimer.singleShot(3000, lambda: self.load_initial())
+
 
     
     def clear_layout(self, layout):
         while layout.count():
             child = layout.takeAt(0)
+            print(child)
             if child.widget():
-                child.widget().deleteLater()
+                child.widget().close()
             elif child.layout():
                 self.clear_layout(child.layout())
         self.update()
 
     def load_initial(self):
         print("displaying the main gui")
+
+        self.clear_layout(self.parent_layout)
+        self.update()
         
         layout = self.parent_layout
         self.createProject = QPushButton("Create a new project", self)
+        self.createProject.setFont(QFont('Times', 15))
         self.openProject = QPushButton("Open an existing project", self)
+        self.openProject.setFont(QFont('Times', 15))
 
         with open('styles/pushbutton.qss', 'r') as f:
             self.createProject.setStyleSheet(f.read())
@@ -154,9 +166,9 @@ class CBAS_GUI(QWidget):
         else:
             response = QMessageBox.question(None, 'Storage', 'The project directory was successfully created. Would you like to select a long term storage directory as a backup?')       
             if response == QMessageBox.Yes:
-                self.storage_folder = str(QFileDialog.getExistingDirectory(self, "Select Backup Directory"))
+                self.storage_path = str(QFileDialog.getExistingDirectory(self, "Select Backup Directory"))
             else:
-                self.storage_folder = self.project_path
+                self.storage_path = self.project_path
             
             self.yaml_path = os.path.join(self.project_path, 'config.yaml')
 
@@ -171,22 +183,16 @@ class CBAS_GUI(QWidget):
             config = {
                 'project_name':self.project_name,
                 'project_path':self.project_path,
-                'storage_path':self.storage_folder,
+                'storage_path':self.storage_path,
                 'model_diagram':'',
-                'cameras':[{
-                    'url':'',
-                    'sl':0,
-                    'cx':1,
-                    'cy':0,
-                    'r':1,
-                    'chunk_size':30
-                }]
+                'cameras':self.cameras
             }
 
             with open(self.yaml_path, 'w+') as file:
                 yaml.dump(config, file, allow_unicode=True)
 
             self.clear_layout(self.parent_layout)
+            self.load_main()
         
 
     
@@ -217,6 +223,16 @@ class CBAS_GUI(QWidget):
 
     
     def load_main(self):
+
+        # generate pictures
+        for c in self.cameras:
+            try:
+                streamprocessing.frameGen(c['url'],c['number'])
+            except:
+                continue
+        
+
+        self.mainloaded = True
 
         self.clear_layout(self.parent_layout)
 
@@ -292,7 +308,8 @@ class CBAS_GUI(QWidget):
 
         button_layout.addStretch(1)
         save_camera = QPushButton("Save Camera Settings")
-        #save_camera.clicked.connect(self.save)
+        save_camera.setFont(QFont('Times', 15))
+        save_camera.clicked.connect(self.save_cameras)
         button_layout.addWidget(save_camera)
 
         bottom_layout.addLayout(text_layout)
@@ -357,9 +374,24 @@ class CBAS_GUI(QWidget):
         self.width = self.frameGeometry().width()
         self.height = self.frameGeometry().height()
 
-        self.clear_layout(self.parent_layout)
-        self.load_main()
+
+
+        if self.mainloaded:
+            self.clear_layout(self.parent_layout)
+            self.load_main()
         self.update()
+
+    def save_cameras(self):
+        config = {
+            'project_name':self.project_name,
+            'project_path':self.project_path,
+            'storage_path':self.storage_path,
+            'model_diagram':'',
+            'cameras':self.cameras
+        }
+
+        with open(self.yaml_path, 'w+') as file:
+            yaml.dump(config, file, allow_unicode=True)
 
 
     def update_crop(self):
@@ -550,37 +582,21 @@ class Camera(QWidget):
 
         # Create a label that will contain the image
         self.imageLabel = QLabel(self)
-        self.imageLabel.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
+        self.imageLabel.setStyleSheet('border:none;padding:0px; margin:0px;')
         
         # Load the image
-        self.pixmap = QPixmap('frames/cam'+str(self.parent.cameras[self.parent.current]['number'])+'.png')
+        self.pixmap = QPixmap('frames/cam'+str(self.parent.cameras[self.index]['number'])+'.png')
     
+        if self.pixmap.isNull():
+            self.pixmap = QPixmap('assets/noimage.png')
+
+
 
         # Scale the pixmap to fit the current size and keep its aspect ratio
         scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
 
         # Set the pixmap to the label
         self.imageLabel.setPixmap(scaled_pixmap)
-        try:
-            # Load the image
-            self.pixmap = QPixmap('frames/cam'+str(self.parent.cameras[self.parent.current]['number'])+'.png')
-        
-
-            # Scale the pixmap to fit the current size and keep its aspect ratio
-            scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
-
-            # Set the pixmap to the label
-            self.imageLabel.setPixmap(scaled_pixmap)
-
-        except:
-            self.pixmap = QPixmap('assets/noimage.png')
-        
-
-            # Scale the pixmap to fit the current size and keep its aspect ratio
-            scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
-
-            # Set the pixmap to the label
-            self.imageLabel.setPixmap(scaled_pixmap)
 
         #self.setStyleSheet("background-image: url('frames/cam1.jpg'); background-position: center; background-repeat: no-repeat; background-size: cover;")
        
@@ -590,6 +606,7 @@ class Camera(QWidget):
 
 
         label = BorderedLabel()
+        self.imageLabel.setStyleSheet('border:none; padding:0px; margin:0px;')
         # Set transparent background and ensure no system background is drawn
         label.setAttribute(Qt.WA_NoSystemBackground)
         label.setAttribute(Qt.WA_TranslucentBackground)
@@ -748,35 +765,6 @@ class BorderedLabel(QLabel):
         painter.drawRect(self.rect().adjusted(0, 0, -pen.width(), -pen.width()))
 
         super(BorderedLabel, self).paintEvent(event)
-
-class ImageBackgroundWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        # Create a label that will contain the image
-        self.imageLabel = QLabel(self)
-
-        # Load the image
-        self.pixmap = QPixmap('frames/cam1.png')
-
-        # Scale the pixmap to fit the current size and keep its aspect ratio
-        scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
-
-        # Set the pixmap to the label
-        self.imageLabel.setPixmap(scaled_pixmap)
-
-        # Set the layout
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.imageLabel)
-        self.setLayout(layout)
-
-    def resizeEvent(self, event):
-        # This ensures the image rescales with the window resize
-        scaled_pixmap = self.pixmap.scaled(self.size(), aspectRatioMode=Qt.KeepAspectRatioByExpanding)
-        self.imageLabel.setPixmap(scaled_pixmap)
-        super().resizeEvent(event)
 
 if __name__ == '__main__':
     cbas = QApplication(sys.argv)
