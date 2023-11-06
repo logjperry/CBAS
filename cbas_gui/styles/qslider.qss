@@ -5,13 +5,13 @@ QSlider::groove:horizontal {
     margin: 0px;
     }
 QSlider::handle:horizontal {
-    background-color: #545454;
+    background-color: #306689;
     border: 2px solid black;
     border-radius: 4px;
-    height: 10px;
-    width: 30px;
-    margin: -5px 0px;
+    height: 5px;
+    width: 20px;
+    margin: -4px 0px;
     }
 QSlider::handle:horizontal:hover {
-    background-color: #757575;
+    background-color: #6BA7CD;
 }

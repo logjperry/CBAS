@@ -341,7 +341,6 @@ class CBAS_GUI(QWidget):
         self.sl = cam['sl']
         self.cx = cam['cx']
         self.cy = cam['cy']
-        self.r = cam['r']
         self.number = cam['number']
 
         self.clear_layout(self.parent_layout)
