@@ -71,7 +71,6 @@ class CBAS_GUI(QWidget):
             'sl':1,
             'cx':0.5,
             'cy':0.5,
-            'r':180,
             'number':1,
             'chunk_size':30
         }]
@@ -83,7 +82,6 @@ class CBAS_GUI(QWidget):
         self.sl = cam['sl']
         self.cx = cam['cx']
         self.cy = cam['cy']
-        self.r = cam['r']
 
         self.mainloaded = False
 
@@ -325,7 +323,6 @@ class CBAS_GUI(QWidget):
             'sl':1,
             'cx':0.5,
             'cy':0.5,
-            'r':180,
             'number':len(self.cameras)+1,
             'chunk_size':30
         })
@@ -543,7 +540,7 @@ class Camera(QWidget):
         self.sl = self.cam['sl']
         self.cx = (self.cam['cx'] -.5)*2
         self.cy = (self.cam['cy'] -.5)*2
-        self.r = self.cam['r']
+        
 
         self.parent = parent
 
