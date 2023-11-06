@@ -71,6 +71,8 @@ class CBAS_GUI(QWidget):
             'sl':1,
             'cx':0.5,
             'cy':0.5,
+            'br':0,
+            'co':1,
             'number':1,
             'chunk_size':30
         }]
@@ -82,6 +84,9 @@ class CBAS_GUI(QWidget):
         self.sl = cam['sl']
         self.cx = cam['cx']
         self.cy = cam['cy']
+        self.cx = cam['br']
+        self.cy = cam['co']
+
 
         self.mainloaded = False
 
@@ -222,17 +227,26 @@ class CBAS_GUI(QWidget):
     
     def load_main(self):
 
-        # generate pictures
-        for c in self.cameras:
-            try:
-                streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
-            except:
-                continue
+
+        self.url = self.cameras[self.current]['url']
+        self.sl = self.cameras[self.current]['sl']
+        self.cx = self.cameras[self.current]['cx']
+        self.cy = self.cameras[self.current]['cy']
+        self.br = self.cameras[self.current]['br']
+        self.co = self.cameras[self.current]['co']
+        self.number = self.cameras[self.current]['number']
+
+        # # generate pictures
+        # for c in self.cameras:
+        #     try:
+        #         streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
+        #     except:
+        #         continue
         
 
         self.mainloaded = True
 
-        self.clear_layout(self.parent_layout)
+        #self.clear_layout(self.parent_layout)
 
         self.setStyleSheet("background-color: gray;")
         self.inmain = True
@@ -302,7 +316,7 @@ class CBAS_GUI(QWidget):
         text_layout.addStretch(1)
 
 
-        slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self))
+        slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.br, self.co, self))
 
         button_layout.addStretch(1)
         save_camera = QPushButton("Save Camera Settings")
@@ -323,6 +337,8 @@ class CBAS_GUI(QWidget):
             'sl':1,
             'cx':0.5,
             'cy':0.5,
+            'br':0,
+            'co':1,
             'number':len(self.cameras)+1,
             'chunk_size':30
         })
@@ -338,6 +354,8 @@ class CBAS_GUI(QWidget):
         self.sl = cam['sl']
         self.cx = cam['cx']
         self.cy = cam['cy']
+        self.br = cam['br']
+        self.co = cam['co']
         self.number = cam['number']
 
         self.clear_layout(self.parent_layout)
@@ -458,11 +476,13 @@ class CBAS_GUI(QWidget):
     
 
 class Crop(QWidget):
-    def __init__(self, sl, cx, cy, parent):
+    def __init__(self, sl, cx, cy, br, co, parent):
         super().__init__()
         self.sl = sl 
         self.cx = cx
-        self.cy = cy 
+        self.cy = cy
+        self.br = br 
+        self.co = co 
 
         self.w = parent.width
         self.h = parent.height
@@ -471,17 +491,24 @@ class Crop(QWidget):
 
         self.init_ui()
     def init_ui(self):
+        layout = QHBoxLayout()
 
-        layout = QVBoxLayout()
+        layout1 = QVBoxLayout()
+        layout2 = QHBoxLayout()
 
 
         sl = QSlider(Qt.Horizontal)
         cx = QSlider(Qt.Horizontal)
         cy = QSlider(Qt.Horizontal)
 
+        br = QSlider(Qt.Vertical)
+        co = QSlider(Qt.Vertical)
+
         sl.setFixedSize(int(self.w/3),int(self.h/20))
         cx.setFixedSize(int(self.w/3),int(self.h/20))
         cy.setFixedSize(int(self.w/3),int(self.h/20))
+        br.setFixedSize(int(self.w/3),int(self.h/20))
+        co.setFixedSize(int(self.w/3),int(self.h/20))
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -489,22 +516,39 @@ class Crop(QWidget):
             cx.setStyleSheet(f.read())
         with open('styles/qslider.qss', 'r') as f:
             cy.setStyleSheet(f.read())
+        with open('styles/qslider.qss', 'r') as f:
+            br.setStyleSheet(f.read())
+        with open('styles/qslider.qss', 'r') as f:
+            co.setStyleSheet(f.read())
+
 
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
+        br.setRange(0,100)
+        co.setRange(0,100)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
         cy.setValue(int(self.cy*100))
+        br.setValue(int(0))
+        co.setValue(int(0))
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
+        br.valueChanged.connect(lambda:self.setBR(br.value()))
+        co.valueChanged.connect(lambda:self.setCO(co.value()))
 
-        layout.addWidget(sl)
-        layout.addWidget(cx)
-        layout.addWidget(cy)
+        layout1.addWidget(sl)
+        layout1.addWidget(cx)
+        layout1.addWidget(cy)
+
+        layout2.addWidget(br)
+        layout2.addWidget(co)
+
+        layout.addLayout(layout1)
+        layout.addLayout(layout2)
 
 
         parent_layout = QHBoxLayout()
@@ -521,6 +565,12 @@ class Crop(QWidget):
         self.parent.update_crop()
     def setCY(self, val):
         self.parent.cameras[self.parent.current]['cy'] = val/100
+        self.parent.update_crop()
+    def setBR(self, val):
+        self.parent.cameras[self.parent.current]['br'] = val/100
+        self.parent.update_crop()
+    def setCO(self, val):
+        self.parent.cameras[self.parent.current]['co'] = val/100
         self.parent.update_crop()
         
 
