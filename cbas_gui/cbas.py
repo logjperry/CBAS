@@ -1,15 +1,28 @@
 import sys
 import vlc
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QGridLayout, QHBoxLayout, QFileDialog, QInputDialog, QMessageBox
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QToolBar, QPushButton, 
+                             QVBoxLayout, QHBoxLayout, QWidget, QLabel, QScrollArea, 
+                             QSlider, QLineEdit)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSize, QCoreApplication
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtGui import QTransform
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtCore import Qt, QRectF
+
+from PyQt5.QtGui import QPainter, QPixmap, QPen, QPalette
+from PyQt5.QtCore import Qt
+
+
 import time
 import ctypes
 import yaml
 import os
+import math
 
 class CBAS_GUI(QWidget):
     def __init__(self):
@@ -18,6 +31,7 @@ class CBAS_GUI(QWidget):
 
     def init_ui(self):
         print("displaying the loading gui")
+
 
         self.setStyleSheet("background-color: white;")
 
@@ -43,9 +57,26 @@ class CBAS_GUI(QWidget):
         self.setLayout(self.parent_layout)
         self.setWindowTitle('CBAS')
         self.resize(800, 800)
+
+
+        self.current = 0
+        self.cameras = [{
+            'url':'',
+            'sl':1,
+            'cx':0.5,
+            'cy':0.5,
+            'r':180,
+            'chunk_size':30
+        }]
+        self.make_current(0)
         
-        QTimer.singleShot(3000, lambda: self.clear_layout(self.parent_layout))
-        QTimer.singleShot(3500, self.load_initial)
+        #QTimer.singleShot(1000, lambda: self.clear_layout(self.parent_layout))
+        self.clear_layout(self.parent_layout)
+        #self.cameras = []
+        self.load_main()
+
+
+        #QTimer.singleShot(3500, self.load_initial)
     
     def clear_layout(self, layout):
         while layout.count():
@@ -135,7 +166,14 @@ class CBAS_GUI(QWidget):
                 'project_path':self.project_path,
                 'storage_path':self.storage_folder,
                 'model_diagram':'',
-                'cameras':[]
+                'cameras':[{
+                    'url':'',
+                    'sl':0,
+                    'cx':1,
+                    'cy':0,
+                    'r':1,
+                    'chunk_size':30
+                }]
             }
 
             with open(self.yaml_path, 'w+') as file:
@@ -166,6 +204,185 @@ class CBAS_GUI(QWidget):
             QMessageBox.warning(None, 'Error', 'Unable to open the project directory. Please select a project folder that contains a config file.')
 
         self.clear_layout(self.parent_layout)
+        self.load_main()
+
+
+
+    
+    def load_main(self):
+
+        self.clear_layout(self.parent_layout)
+
+        self.setStyleSheet("background-color: gray;")
+        self.inmain = True
+
+
+        self.width = self.frameGeometry().width()
+        self.height = self.frameGeometry().height()
+        # Toolbar
+        # toolbar = QToolBar()
+        # self.addToolBar(toolbar)
+        
+        # cameras_btn = QPushButton("Cameras")
+        # model_btn = QPushButton("Model")
+        # analysis_btn = QPushButton("Analysis")
+
+        # toolbar.addWidget(cameras_btn)
+        # toolbar.addWidget(model_btn)
+        # toolbar.addWidget(analysis_btn)
+
+        # Main content
+        main_layout = self.parent_layout
+
+        camera_scroll = QScrollArea()
+        camera_container = QWidget()
+
+        camera_container.setStyleSheet("background-color: darkgray;")
+        camera_container_layout = QVBoxLayout()
+        add_button_layout = QHBoxLayout()
+        down_layout = QVBoxLayout()
+        down_layout.addWidget(self.create_add_camera_widget())
+        down_layout.addStretch()
+        add_button_layout.addLayout(down_layout)
+        add_button_layout.addStretch()
+
+        camera_container_layout.addLayout(add_button_layout)
+
+
+        for i in range(math.ceil((len(self.cameras)/4))):
+            camera_layout = QHBoxLayout()
+            for j in range(4):
+                if j>=len(self.cameras)-i*4:
+                    camera_layout.addWidget(self.hidden_camera_widget())
+                else:
+                    cam = self.create_camera_widget(i*4+j)
+                    camera_layout.addWidget(cam)
+                    if self.current==i*4+j:
+                        self.cam_widget = cam
+            camera_container_layout.addLayout(camera_layout)
+            
+        if len(self.cameras)<8:
+            camera_container_layout.addStretch()
+        camera_container.setLayout(camera_container_layout)
+        self.camera_container_layout = camera_container_layout
+        camera_scroll.setWidget(camera_container)
+        camera_scroll.setWidgetResizable(True)
+
+        # Bottom content
+        bottom_layout = QVBoxLayout()
+        text_layout = QHBoxLayout()
+        slider_layout = QHBoxLayout()
+        button_layout = QHBoxLayout()
+
+        self.url = QLineEdit(str(self.cameras[self.current]['url']))
+        self.url.setStyleSheet('border: 2px solid black')
+        text_layout.addWidget(self.url)
+        text_layout.addStretch(1)
+
+
+        slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.r, self))
+
+        button_layout.addStretch(1)
+        save_camera = QPushButton("Save Camera Settings")
+        #save_camera.clicked.connect(self.save)
+        button_layout.addWidget(save_camera)
+
+        bottom_layout.addLayout(text_layout)
+        bottom_layout.addLayout(slider_layout)
+        bottom_layout.addLayout(button_layout)
+
+        main_layout.addWidget(camera_scroll)
+        main_layout.addLayout(bottom_layout)
+
+    def add_camera(self):
+        self.cameras.insert(0,{
+            'url':'',
+            'sl':1,
+            'cx':0.5,
+            'cy':0.5,
+            'r':180,
+            'chunk_size':30
+        })
+        self.make_current(0)
+        self.clear_layout(self.parent_layout)
+        self.load_main()
+    
+    def make_current(self, index):
+        self.current = index
+        cam = self.cameras[index]
+
+        self.url = cam['url']
+        self.sl = cam['sl']
+        self.cx = cam['cx']
+        self.cy = cam['cy']
+        self.r = cam['r']
+
+        self.clear_layout(self.parent_layout)
+        self.load_main()
+
+    def create_camera_widget(self, index):
+        return Camera(index, self)
+    
+    def hidden_camera_widget(self):
+        label = QLabel()
+        label.setStyleSheet("background-color: none; border:none;")
+        width = self.frameGeometry().width()
+        height = self.frameGeometry().height()
+        label.setFixedSize(int(width/5),int(width/5))
+        return label
+
+    def create_add_camera_widget(self):
+        button = QPushButton(self)
+        button.setFixedSize(50,50)
+        button.clicked.connect(self.add_camera)
+        button.setStyleSheet("border: none; background-color:none; color:gray;")
+        button.setIcon(QIcon('assets/plus.svg'))
+        button.setIconSize(QSize(50, 50))
+        return button
+
+        
+    def resizeEvent(self, event):
+        # Important: Propagate the event to the base class
+        super().resizeEvent(event)
+        self.width = self.frameGeometry().width()
+        self.height = self.frameGeometry().height()
+        self.clear_layout(self.parent_layout)
+        self.load_main()
+
+
+    def update_crop(self):
+        self.update_cameras()
+
+    def update_cameras(self):
+        self.clear_layout(self.camera_container_layout)
+        add_button_layout = QHBoxLayout()
+        down_layout = QVBoxLayout()
+        down_layout.addWidget(self.create_add_camera_widget())
+        down_layout.addStretch()
+        add_button_layout.addLayout(down_layout)
+        add_button_layout.addStretch()
+
+        self.camera_container_layout.addLayout(add_button_layout)
+
+
+        for i in range(math.ceil((len(self.cameras)/4))):
+            camera_layout = QHBoxLayout()
+            for j in range(4):
+                if j>=len(self.cameras)-i*4:
+                    camera_layout.addWidget(self.hidden_camera_widget())
+                else:
+                    cam = self.create_camera_widget(i*4+j)
+                    camera_layout.addWidget(cam)
+                    if self.current==i*4+j:
+                        self.cam_widget = cam
+            self.camera_container_layout.addLayout(camera_layout)
+            
+        if len(self.cameras)<8:
+            self.camera_container_layout.addStretch()
+
+
+        
+
 
     # USE CASE: Standardize incoming video
     # User should be able to see screenshots of the video streams with the corresponding video filter in place
@@ -200,7 +417,258 @@ class CBAS_GUI(QWidget):
 
     
 
+class Crop(QWidget):
+    def __init__(self, sl, cx, cy, r, parent):
+        super().__init__()
+        self.sl = sl 
+        self.cx = cx
+        self.cy = cy 
+        self.r = r
 
+        self.w = parent.width
+        self.h = parent.height
+
+        self.parent = parent
+
+        self.init_ui()
+    def init_ui(self):
+
+        layout = QVBoxLayout()
+
+
+        sl = QSlider(Qt.Horizontal)
+        cx = QSlider(Qt.Horizontal)
+        cy = QSlider(Qt.Horizontal)
+        r = QSlider(Qt.Horizontal)
+
+        sl.setFixedSize(int(self.w/4),int(self.h/20))
+        cx.setFixedSize(int(self.w/4),int(self.h/20))
+        cy.setFixedSize(int(self.w/4),int(self.h/20))
+        r.setFixedSize(int(self.w/4),int(self.h/20))
+
+        with open('styles/qslider.qss', 'r') as f:
+            sl.setStyleSheet(f.read())
+        with open('styles/qslider.qss', 'r') as f:
+            cx.setStyleSheet(f.read())
+        with open('styles/qslider.qss', 'r') as f:
+            cy.setStyleSheet(f.read())
+        with open('styles/qslider.qss', 'r') as f:
+            r.setStyleSheet(f.read())
+
+        sl.setRange(0,100)
+        cx.setRange(0,100)
+        cy.setRange(0,100)
+        r.setRange(0,360)
+
+        sl.setValue(int(self.sl*100))
+        cx.setValue(int(self.cx*100))
+        cy.setValue(int(self.cy*100))
+        r.setValue(int(self.r))
+
+        sl.valueChanged.connect(lambda:self.setSL(sl.value()))
+        cx.valueChanged.connect(lambda:self.setCX(cx.value()))
+        cy.valueChanged.connect(lambda:self.setCY(cy.value()))
+        r.valueChanged.connect(lambda:self.setR(r.value()))
+
+        layout.addWidget(sl)
+        layout.addWidget(cx)
+        layout.addWidget(cy)
+        layout.addWidget(r)
+
+
+        parent_layout = QHBoxLayout()
+        parent_layout.addLayout(layout)
+        parent_layout.addStretch()
+
+        self.setLayout(parent_layout)
+
+    def setSL(self, val):
+        self.parent.sl = val/100
+        self.parent.update_crop()
+    def setCX(self, val):
+        self.parent.cx = val/100
+        self.parent.update_crop()
+    def setCY(self, val):
+        self.parent.cy = val/100
+        self.parent.update_crop()
+    def setR(self, val):
+        self.parent.r = val
+        self.parent.update_crop()
+        
+
+
+class Camera(QWidget):
+    clicked = pyqtSignal()
+
+    def __init__(self, index, parent):
+        super().__init__()
+        self.index = index
+
+        self.width = parent.width
+        self.height = parent.height
+
+        self.cam = parent.cameras[index]
+
+        self.sl = parent.sl
+        self.cx = (parent.cx -.5)*2
+        self.cy = (parent.cy -.5)*2
+        self.r = parent.r
+
+        self.parent = parent
+
+
+        self.init_ui()
+    def init_ui(self):
+
+
+        layout = QHBoxLayout()
+
+        image = QWidget()
+
+        image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
+
+        self.setStyleSheet("border: none; background-color:white;")
+
+        isl = (1 - self.sl)/2
+
+
+
+
+        label = RotatedLabel(self.r)
+        if self.index!=self.parent.current:
+            label.setStyleSheet("border: none; background-color:none;")
+        else:
+            label.setStyleSheet("border: 3px solid black; background-color:none;")
+
+
+        w = self.frameGeometry().width()
+        h = self.frameGeometry().height()
+
+        size = int(self.width/5)
+        image.setFixedSize(size,size)
+
+
+        left = int(size*isl)
+        right = int(size*isl)
+        top = int(size*isl)
+        bot = int(size*isl)
+        if self.cx>0:
+            left = int(left + self.cx*size/2)
+            right = int(right - self.cx*size/2)
+            if right<0:
+                right = 0
+        else:
+            left = int(left + self.cx*size/2)
+            right = int(right - self.cx*size/2)
+            if left<0:
+                left = 0
+        if self.cy>0:
+            top = int(top + self.cy*size/2)
+            bot = int(bot - self.cy*size/2)
+            if bot<0:
+                bot = 0
+        else:
+            top = int(top + self.cy*size/2)
+            bot = int(bot - self.cy*size/2)
+            if top<0:
+                top = 0
+        layout.setContentsMargins(left, top, right, bot)
+
+
+        self.clicked.connect(lambda: self.parent.make_current(self.index))
+
+        layout.addWidget(label)
+
+        image.setLayout(layout)
+
+        self.parentlayout = QHBoxLayout()
+        self.parentlayout.addWidget(image)
+
+        self.setLayout(self.parentlayout)
+    
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        # Emit the clicked signal
+        self.clicked.emit()
+
+    def update_crop(self, sl, cx, cy, r):
+        self.sl = sl
+        self.cx = cx 
+        self.cy = cy 
+        self.r = r
+
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+            elif child.layout():
+                self.clear_layout(child.layout())
+        self.update()
+
+    def draw(self):
+
+        layout = QHBoxLayout()
+
+        image = QWidget()
+
+        image.setStyleSheet('border:none; background-color:white; padding:0px; margin:0px;')
+
+        self.setStyleSheet("border: none; background-color:white;")
+
+        isl = (1 - self.sl)/2
+
+        label = QLabel()
+        if self.index!=self.parent.current:
+            label.setStyleSheet("border: none; background-color:none;")
+        else:
+            label.setStyleSheet("border: none; background-color:none;")
+
+
+        w = self.frameGeometry().width()
+        h = self.frameGeometry().height()
+
+        size = int(self.width/5)
+        image.setFixedSize(size,size)
+
+
+        layout.setContentsMargins(int(size*isl), int(size*isl), int(size*isl), int(size*isl))
+
+
+        self.clicked.connect(lambda: self.parent.make_current(self.index))
+
+        layout.addWidget(label)
+
+        image.setLayout(layout)
+
+        self.parentlayout.addWidget(image)
+
+
+class RotatedLabel(QLabel):
+    def __init__(self, angle, *args, **kwargs):
+        super(RotatedLabel, self).__init__(*args, **kwargs)
+        self.angle = angle
+
+    def paintEvent(self, event):
+        with QPainter(self) as painter:
+            painter.setRenderHint(QPainter.Antialiasing)
+
+            # Set the pen for the border (from the stylesheet for example)
+            pen = QPen()
+            pen.setWidth(2)
+            pen.setColor(Qt.black)  # Assuming you want a red border as per previous QSS
+            painter.setPen(pen)
+
+            # Apply rotation
+            painter.translate(self.rect().center())
+            painter.rotate(self.angle)
+
+            # Draw the border around the QLabel
+            painter.drawRect(int(-self.rect().width()/2), int(-self.rect().height()/2), int(self.rect().width()), int(self.rect().height()))
 
 
 
@@ -208,7 +676,10 @@ class CBAS_GUI(QWidget):
 if __name__ == '__main__':
     cbas = QApplication(sys.argv)
 
+
     window = CBAS_GUI()
     window.show()
+
+
 
     sys.exit(cbas.exec_())
