@@ -271,7 +271,7 @@ class CBAS_GUI(QWidget):
         if len(self.cameras)<8:
             camera_container_layout.addStretch()
         camera_container.setLayout(camera_container_layout)
-        #camera_container_layout = camera_container_layout
+        self.camera_container_layout = camera_container_layout
         camera_scroll.setWidget(camera_container)
         camera_scroll.setWidgetResizable(True)
 
