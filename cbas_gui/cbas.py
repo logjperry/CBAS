@@ -236,12 +236,12 @@ class CBAS_GUI(QWidget):
         self.co = self.cameras[self.current]['co']
         self.number = self.cameras[self.current]['number']
 
-        # # generate pictures
-        # for c in self.cameras:
-        #     try:
-        #         streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
-        #     except:
-        #         continue
+        # generate pictures
+        for c in self.cameras:
+            try:
+                streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
+            except:
+                continue
         
 
         self.mainloaded = True
@@ -254,6 +254,7 @@ class CBAS_GUI(QWidget):
 
         self.width = self.frameGeometry().width()
         self.height = self.frameGeometry().height()
+
         # Toolbar
         # toolbar = QToolBar()
         # self.addToolBar(toolbar)
@@ -317,7 +318,6 @@ class CBAS_GUI(QWidget):
 
 
         slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.br, self.co, self))
-
         button_layout.addStretch(1)
         save_camera = QPushButton("Save Camera Settings")
         save_camera.setFont(QFont('Times', 15))
@@ -507,8 +507,8 @@ class Crop(QWidget):
         sl.setFixedSize(int(self.w/3),int(self.h/20))
         cx.setFixedSize(int(self.w/3),int(self.h/20))
         cy.setFixedSize(int(self.w/3),int(self.h/20))
-        br.setFixedSize(int(self.w/3),int(self.h/20))
-        co.setFixedSize(int(self.w/3),int(self.h/20))
+        #br.setFixedSize(int(self.w/3),int(self.h/20))
+        #co.setFixedSize(int(self.w/3),int(self.h/20))
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
