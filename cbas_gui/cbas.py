@@ -494,7 +494,7 @@ class Crop(QWidget):
         layout = QHBoxLayout()
 
         layout1 = QVBoxLayout()
-        subLayoutSL = QHBoxLayout()
+
         layout2 = QHBoxLayout()
 
 
@@ -507,31 +507,20 @@ class Crop(QWidget):
         slLabel = QLabel()
         cxLabel = QLabel()
         cyLabel = QLabel()
-        brLabel = QLabel()
-        coLabel = QLabel()
 
-        slMin = QLabel()
-        slVal = QLabel()
-        slMax = QLabel()
-
-        slLabel.setFixedSize(int(self.w/4),int(self.h/50))
-        cxLabel.setFixedSize(int(self.w/4),int(self.h/50))
-        cyLabel.setFixedSize(int(self.w/4),int(self.h/50))
+        slLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        cxLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        cyLabel.setFixedSize(int(self.w/4),int(self.h/40))
 
 
-        sl.setFixedSize(int(self.w/4),int(self.h/50))
-        cx.setFixedSize(int(self.w/4),int(self.h/50))
-        cy.setFixedSize(int(self.w/4),int(self.h/50))
+        sl.setFixedSize(int(self.w/4),int(self.h/30))
+        cx.setFixedSize(int(self.w/4),int(self.h/30))
+        cy.setFixedSize(int(self.w/4),int(self.h/30))
         br.setFixedSize(int(self.w/20),int(self.h/4))
         co.setFixedSize(int(self.w/20),int(self.h/4))
 
-        #slMin.setFixedSize(int(self.w/4),int(self.h/50))
-        #slVal.setFixedSize(int(self.w/4),int(self.h/50))
-        #slMax.setFixedSize(int(self.w/4),int(self.h/50))
+        slLabel.setAlignment(Qt.AlignLeft)
 
-        #slMin.setAlignment(Qt.AlignLeft)
-        #slVal.setAlignment(Qt.AlignCenter)
-        #slMax.setAlignment(Qt.AlignRight)
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -559,25 +548,16 @@ class Crop(QWidget):
 
         slLabel.setText('Scale')
         cxLabel.setText('Crop X')
-        cyLabel.setText('Crop Y')
-        
-        slMin.setText('0')
-        slVal.setText('50')
-        slMax.setText('100')
+        cyLabel.setText('Crop Y')        
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
         br.valueChanged.connect(lambda:self.setBR(br.value()))
         co.valueChanged.connect(lambda:self.setCO(co.value()/100))
-
-        subLayoutSL.addWidget(slMin)
-        subLayoutSL.addWidget(slVal)
-        subLayoutSL.addWidget(slMax)
         
         layout1.addWidget(slLabel)
         layout1.addWidget(sl)
-        layout1.addLayout(subLayoutSL)
 
         layout1.addWidget(cxLabel)
         layout1.addWidget(cx)
