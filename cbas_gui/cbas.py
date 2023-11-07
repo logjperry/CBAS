@@ -496,6 +496,14 @@ class Crop(QWidget):
         layout1 = QVBoxLayout()
 
         layout2 = QHBoxLayout()
+        layout2Labels = QHBoxLayout()
+        layout3 = QVBoxLayout()
+
+        slSubLayout = QHBoxLayout()
+        cxSubLayout = QHBoxLayout()
+        cySubLayout = QHBoxLayout()
+        brSubLayout = QVBoxLayout()
+        coSubLayout = QVBoxLayout()
 
 
         sl = QSlider(Qt.Horizontal)
@@ -507,10 +515,26 @@ class Crop(QWidget):
         slLabel = QLabel()
         cxLabel = QLabel()
         cyLabel = QLabel()
+        brLabel = QLabel()
+        coLabel = QLabel()
+
+        slMin = QLabel()
+        cxMin = QLabel()
+        cyMin = QLabel()
+        brMin = QLabel()
+        coMin = QLabel()
+
+        slMax = QLabel()
+        cxMax = QLabel()
+        cyMax = QLabel()
+        brMax = QLabel()
+        coMax = QLabel()
 
         slLabel.setFixedSize(int(self.w/4),int(self.h/40))
         cxLabel.setFixedSize(int(self.w/4),int(self.h/40))
         cyLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        brLabel.setFixedSize(int(self.w/40),int(self.h/10))
+        coLabel.setFixedSize(int(self.w/40),int(self.h/10))
 
 
         sl.setFixedSize(int(self.w/4),int(self.h/30))
@@ -519,8 +543,17 @@ class Crop(QWidget):
         br.setFixedSize(int(self.w/20),int(self.h/4))
         co.setFixedSize(int(self.w/20),int(self.h/4))
 
-        slLabel.setAlignment(Qt.AlignLeft)
+        slMin.setAlignment(Qt.AlignLeft)
+        cxMin.setAlignment(Qt.AlignLeft)
+        cyMin.setAlignment(Qt.AlignLeft)
+        brMin.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
+        coMin.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
 
+        slMax.setAlignment(Qt.AlignRight)
+        cxMax.setAlignment(Qt.AlignRight)
+        cyMax.setAlignment(Qt.AlignRight)
+        brMax.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        coMax.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -548,7 +581,21 @@ class Crop(QWidget):
 
         slLabel.setText('Scale')
         cxLabel.setText('Crop X')
-        cyLabel.setText('Crop Y')        
+        cyLabel.setText('Crop Y')
+        brLabel.setText('BR')
+        coLabel.setText('CO')
+
+        slMin.setText(str(sl.minimum()))
+        cxMin.setText(str(cx.minimum()))
+        cyMin.setText(str(cy.minimum()))
+        brMin.setText('-1')
+        coMin.setText('0')
+
+        slMax.setText(str(sl.maximum()))
+        cxMax.setText(str(cx.maximum()))
+        cyMax.setText(str(cy.maximum()))
+        brMax.setText('1')
+        coMax.setText('2')
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
@@ -558,18 +605,41 @@ class Crop(QWidget):
         
         layout1.addWidget(slLabel)
         layout1.addWidget(sl)
+        slSubLayout.addWidget(slMin)
+        slSubLayout.addWidget(slMax)
+        layout1.addLayout(slSubLayout)
 
         layout1.addWidget(cxLabel)
         layout1.addWidget(cx)
+        cxSubLayout.addWidget(cxMin)
+        cxSubLayout.addWidget(cxMax)
+        layout1.addLayout(cxSubLayout)
 
         layout1.addWidget(cyLabel)
         layout1.addWidget(cy)
+        cySubLayout.addWidget(cyMin)
+        cySubLayout.addWidget(cyMax)
+        layout1.addLayout(cySubLayout)
 
         layout2.addWidget(br)
+        brSubLayout.addWidget(brMax)
+        brSubLayout.addWidget(brMin)
+        layout2.addLayout(brSubLayout)
+
+
         layout2.addWidget(co)
+        coSubLayout.addWidget(coMax)
+        coSubLayout.addWidget(coMin)
+        layout2.addLayout(coSubLayout)
+
+        layout2Labels.addWidget(brLabel)
+        layout2Labels.addWidget(coLabel)
+
+        layout3.addLayout(layout2)
+        layout3.addLayout(layout2Labels)
 
         layout.addLayout(layout1)
-        layout.addLayout(layout2)
+        layout.addLayout(layout3)
 
 
         parent_layout = QHBoxLayout()
