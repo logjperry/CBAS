@@ -494,21 +494,44 @@ class Crop(QWidget):
         layout = QHBoxLayout()
 
         layout1 = QVBoxLayout()
+        subLayoutSL = QHBoxLayout()
         layout2 = QHBoxLayout()
 
 
         sl = QSlider(Qt.Horizontal)
         cx = QSlider(Qt.Horizontal)
         cy = QSlider(Qt.Horizontal)
-
         br = QSlider(Qt.Vertical)
         co = QSlider(Qt.Vertical)
 
-        sl.setFixedSize(int(self.w/4),int(self.h/20))
-        cx.setFixedSize(int(self.w/4),int(self.h/20))
-        cy.setFixedSize(int(self.w/4),int(self.h/20))
+        slLabel = QLabel()
+        cxLabel = QLabel()
+        cyLabel = QLabel()
+        brLabel = QLabel()
+        coLabel = QLabel()
+
+        slMin = QLabel()
+        slVal = QLabel()
+        slMax = QLabel()
+
+        slLabel.setFixedSize(int(self.w/4),int(self.h/50))
+        cxLabel.setFixedSize(int(self.w/4),int(self.h/50))
+        cyLabel.setFixedSize(int(self.w/4),int(self.h/50))
+
+
+        sl.setFixedSize(int(self.w/4),int(self.h/50))
+        cx.setFixedSize(int(self.w/4),int(self.h/50))
+        cy.setFixedSize(int(self.w/4),int(self.h/50))
         br.setFixedSize(int(self.w/20),int(self.h/4))
         co.setFixedSize(int(self.w/20),int(self.h/4))
+
+        #slMin.setFixedSize(int(self.w/4),int(self.h/50))
+        #slVal.setFixedSize(int(self.w/4),int(self.h/50))
+        #slMax.setFixedSize(int(self.w/4),int(self.h/50))
+
+        #slMin.setAlignment(Qt.AlignLeft)
+        #slVal.setAlignment(Qt.AlignCenter)
+        #slMax.setAlignment(Qt.AlignRight)
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -525,8 +548,8 @@ class Crop(QWidget):
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
-        br.setRange(-1,1)
-        co.setRange(0,2)
+        br.setRange(0,100)
+        co.setRange(0,200)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
@@ -534,14 +557,32 @@ class Crop(QWidget):
         br.setValue(int(0))
         co.setValue(int(0))
 
+        slLabel.setText('Scale')
+        cxLabel.setText('Crop X')
+        cyLabel.setText('Crop Y')
+        
+        slMin.setText('0')
+        slVal.setText('50')
+        slMax.setText('100')
+
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
         br.valueChanged.connect(lambda:self.setBR(br.value()))
-        co.valueChanged.connect(lambda:self.setCO(co.value()))
+        co.valueChanged.connect(lambda:self.setCO(co.value()/100))
 
+        subLayoutSL.addWidget(slMin)
+        subLayoutSL.addWidget(slVal)
+        subLayoutSL.addWidget(slMax)
+        
+        layout1.addWidget(slLabel)
         layout1.addWidget(sl)
+        layout1.addLayout(subLayoutSL)
+
+        layout1.addWidget(cxLabel)
         layout1.addWidget(cx)
+
+        layout1.addWidget(cyLabel)
         layout1.addWidget(cy)
 
         layout2.addWidget(br)
