@@ -504,11 +504,11 @@ class Crop(QWidget):
         br = QSlider(Qt.Vertical)
         co = QSlider(Qt.Vertical)
 
-        sl.setFixedSize(int(self.w/3),int(self.h/20))
-        cx.setFixedSize(int(self.w/3),int(self.h/20))
-        cy.setFixedSize(int(self.w/3),int(self.h/20))
-        #br.setFixedSize(int(self.w/3),int(self.h/20))
-        #co.setFixedSize(int(self.w/3),int(self.h/20))
+        sl.setFixedSize(int(self.w/4),int(self.h/20))
+        cx.setFixedSize(int(self.w/4),int(self.h/20))
+        cy.setFixedSize(int(self.w/4),int(self.h/20))
+        br.setFixedSize(int(self.w/20),int(self.h/4))
+        co.setFixedSize(int(self.w/20),int(self.h/4))
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -525,8 +525,8 @@ class Crop(QWidget):
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
-        br.setRange(0,100)
-        co.setRange(0,100)
+        br.setRange(-1,1)
+        co.setRange(0,2)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
