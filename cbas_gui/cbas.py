@@ -542,14 +542,15 @@ class Crop(QWidget):
         br.setFixedSize(int(self.w/20),int(self.h/4))
         co.setFixedSize(int(self.w/20),int(self.h/4))
 
-        brLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
-        coLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        #brLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        #coLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
         
         slMin.setAlignment(Qt.AlignLeft)
         cxMin.setAlignment(Qt.AlignLeft)
         cyMin.setAlignment(Qt.AlignLeft)
         brMin.setAlignment(Qt.AlignCenter | Qt.AlignTop)
         coMin.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+
         slMax.setAlignment(Qt.AlignRight)
         cxMax.setAlignment(Qt.AlignRight)
         cyMax.setAlignment(Qt.AlignRight)
@@ -577,14 +578,14 @@ class Crop(QWidget):
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
         cy.setValue(int(self.cy*100))
-        br.setValue(int(0))
-        co.setValue(int(0))
+        br.setValue(int(self.br*100))
+        co.setValue(int(self.co*100))
 
         slLabel.setText('Scale')
         cxLabel.setText('Crop X')
         cyLabel.setText('Crop Y')
-        brLabel.setText('Br')
-        coLabel.setText('Co')
+        brLabel.setText('Bright')
+        coLabel.setText('Con')
 
         slMin.setText(str(sl.minimum()))
         cxMin.setText(str(cx.minimum()))
@@ -601,7 +602,7 @@ class Crop(QWidget):
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
-        br.valueChanged.connect(lambda:self.setBR(br.value()))
+        br.valueChanged.connect(lambda:self.setBR(br.value()/100))
         co.valueChanged.connect(lambda:self.setCO(co.value()/100))
         
         layout1.addWidget(slLabel)
