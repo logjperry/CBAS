@@ -254,6 +254,7 @@ class CBAS_GUI(QWidget):
 
         self.width = self.frameGeometry().width()
         self.height = self.frameGeometry().height()
+
         # Toolbar
         # toolbar = QToolBar()
         # self.addToolBar(toolbar)
@@ -317,7 +318,6 @@ class CBAS_GUI(QWidget):
 
 
         slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.br, self.co, self))
-
         button_layout.addStretch(1)
         save_camera = QPushButton("Save Camera Settings")
         save_camera.setFont(QFont('Times', 15))
@@ -496,19 +496,66 @@ class Crop(QWidget):
         layout1 = QVBoxLayout()
         layout2 = QHBoxLayout()
 
+        brLayout = QVBoxLayout()
+        coLayout = QVBoxLayout()
+        
+
+        slSubLayout = QHBoxLayout()
+        cxSubLayout = QHBoxLayout()
+        cySubLayout = QHBoxLayout()
+
 
         sl = QSlider(Qt.Horizontal)
         cx = QSlider(Qt.Horizontal)
         cy = QSlider(Qt.Horizontal)
-
         br = QSlider(Qt.Vertical)
         co = QSlider(Qt.Vertical)
 
-        sl.setFixedSize(int(self.w/3),int(self.h/20))
-        cx.setFixedSize(int(self.w/3),int(self.h/20))
-        cy.setFixedSize(int(self.w/3),int(self.h/20))
-        br.setFixedSize(int(self.w/3),int(self.h/20))
-        co.setFixedSize(int(self.w/3),int(self.h/20))
+        slLabel = QLabel()
+        cxLabel = QLabel()
+        cyLabel = QLabel()
+        brLabel = QLabel()
+        coLabel = QLabel()
+
+        slMin = QLabel()
+        cxMin = QLabel()
+        cyMin = QLabel()
+        brMin = QLabel()
+        coMin = QLabel()
+
+        slMax = QLabel()
+        cxMax = QLabel()
+        cyMax = QLabel()
+        brMax = QLabel()
+        coMax = QLabel()
+
+        slLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        cxLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        cyLabel.setFixedSize(int(self.w/4),int(self.h/40))
+        brLabel.setFixedSize(int(self.w/40),int(self.h/10))
+        coLabel.setFixedSize(int(self.w/40),int(self.h/10))
+
+
+        sl.setFixedSize(int(self.w/4),int(self.h/30))
+        cx.setFixedSize(int(self.w/4),int(self.h/30))
+        cy.setFixedSize(int(self.w/4),int(self.h/30))
+        br.setFixedSize(int(self.w/20),int(self.h/4))
+        co.setFixedSize(int(self.w/20),int(self.h/4))
+
+        #brLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        #coLabel.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        
+        slMin.setAlignment(Qt.AlignLeft)
+        cxMin.setAlignment(Qt.AlignLeft)
+        cyMin.setAlignment(Qt.AlignLeft)
+        brMin.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        coMin.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+
+        slMax.setAlignment(Qt.AlignRight)
+        cxMax.setAlignment(Qt.AlignRight)
+        cyMax.setAlignment(Qt.AlignRight)
+        brMax.setAlignment(Qt.AlignCenter | Qt.AlignBottom)
+        coMax.setAlignment(Qt.AlignCenter | Qt.AlignBottom)
 
         with open('styles/qslider.qss', 'r') as f:
             sl.setStyleSheet(f.read())
@@ -525,27 +572,75 @@ class Crop(QWidget):
         sl.setRange(0,100)
         cx.setRange(0,100)
         cy.setRange(0,100)
-        br.setRange(0,100)
-        co.setRange(0,100)
+        br.setRange(-100,100)
+        co.setRange(0,200)
 
         sl.setValue(int(self.sl*100))
         cx.setValue(int(self.cx*100))
         cy.setValue(int(self.cy*100))
-        br.setValue(int(0))
-        co.setValue(int(0))
+        br.setValue(int(self.br*100))
+        co.setValue(int(self.co*100))
+
+        slLabel.setText('Scale')
+        cxLabel.setText('Crop X')
+        cyLabel.setText('Crop Y')
+        brLabel.setText('Bright')
+        coLabel.setText('Con')
+
+        slMin.setText(str(sl.minimum()))
+        cxMin.setText(str(cx.minimum()))
+        cyMin.setText(str(cy.minimum()))
+        brMin.setText('-1')
+        coMin.setText('0')
+
+        slMax.setText(str(sl.maximum()))
+        cxMax.setText(str(cx.maximum()))
+        cyMax.setText(str(cy.maximum()))
+        brMax.setText('1')
+        coMax.setText('2')
 
         sl.valueChanged.connect(lambda:self.setSL(sl.value()))
         cx.valueChanged.connect(lambda:self.setCX(cx.value()))
         cy.valueChanged.connect(lambda:self.setCY(cy.value()))
-        br.valueChanged.connect(lambda:self.setBR(br.value()))
-        co.valueChanged.connect(lambda:self.setCO(co.value()))
-
+        br.valueChanged.connect(lambda:self.setBR(br.value()/100))
+        co.valueChanged.connect(lambda:self.setCO(co.value()/100))
+        
+        layout1.addWidget(slLabel)
         layout1.addWidget(sl)
-        layout1.addWidget(cx)
-        layout1.addWidget(cy)
+        slSubLayout.addWidget(slMin)
+        slSubLayout.addWidget(slMax)
+        layout1.addLayout(slSubLayout)
 
-        layout2.addWidget(br)
-        layout2.addWidget(co)
+        layout1.addWidget(cxLabel)
+        layout1.addWidget(cx)
+        cxSubLayout.addWidget(cxMin)
+        cxSubLayout.addWidget(cxMax)
+        layout1.addLayout(cxSubLayout)
+
+        layout1.addWidget(cyLabel)
+        layout1.addWidget(cy)
+        cySubLayout.addWidget(cyMin)
+        cySubLayout.addWidget(cyMax)
+        layout1.addLayout(cySubLayout)
+        
+        layout1.addStretch()
+
+        brLayout.addWidget(brMax)
+        brLayout.addWidget(br)
+        brLayout.addWidget(brMin)
+        brLayout.addWidget(brLabel)
+        brLayout.addStretch()
+
+        
+        coLayout.addWidget(coMax)
+        coLayout.addWidget(co)
+        coLayout.addWidget(coMin)
+        coLayout.addWidget(coLabel)
+        coLayout.addStretch()
+
+        layout2.addLayout(brLayout)
+        layout2.addLayout(coLayout)
+        layout2.addStretch()
 
         layout.addLayout(layout1)
         layout.addLayout(layout2)
