@@ -315,7 +315,7 @@ class CBAS_GUI(QWidget):
         button_layout = QHBoxLayout()
 
         self.url = QLineEdit(str(self.cameras[self.current]['url']))
-        self.url.setStyleSheet('border: 2px solid black')
+        self.url.setStyleSheet('border: 1px solid #000; padding: 4px; background-color: #FFF; color: #000')
         urlLabel = QLabel()
         urlLabel.setText('Cam URL:')
         text_layout.addWidget(urlLabel)
