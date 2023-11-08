@@ -236,12 +236,12 @@ class CBAS_GUI(QWidget):
         self.co = self.cameras[self.current]['co']
         self.number = self.cameras[self.current]['number']
 
-        # # generate pictures
-        # for c in self.cameras:
-        #     try:
-        #         streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
-        #     except:
-        #         continue
+        # generate pictures
+        for c in self.cameras:
+            try:
+                streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
+            except:
+                continue
         
 
         self.mainloaded = True
@@ -389,7 +389,7 @@ class CBAS_GUI(QWidget):
         self.height = self.frameGeometry().height()
 
 
-
+        print("here")
         if self.mainloaded:
             self.clear_layout(self.parent_layout)
             self.load_main()
