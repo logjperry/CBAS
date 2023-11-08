@@ -624,17 +624,17 @@ class Crop(QWidget):
         
         layout1.addStretch()
 
+        brLayout.addWidget(brLabel)
         brLayout.addWidget(brMax)
         brLayout.addWidget(br)
         brLayout.addWidget(brMin)
-        brLayout.addWidget(brLabel)
         brLayout.addStretch()
 
         
+        coLayout.addWidget(coLabel)
         coLayout.addWidget(coMax)
         coLayout.addWidget(co)
         coLayout.addWidget(coMin)
-        coLayout.addWidget(coLabel)
         coLayout.addStretch()
 
         layout2.addLayout(brLayout)
