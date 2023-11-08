@@ -99,7 +99,7 @@ class CBAS_GUI(QWidget):
             child = layout.takeAt(0)
             print(child)
             if child.widget():
-                child.widget().close()
+                child.widget().deleteLater()
             elif child.layout():
                 self.clear_layout(child.layout())
         self.update()
@@ -389,11 +389,10 @@ class CBAS_GUI(QWidget):
         self.height = self.frameGeometry().height()
 
 
-        print("here")
         if self.mainloaded:
             self.clear_layout(self.parent_layout)
+            self.update()
             self.load_main()
-        self.update()
 
     def save_cameras(self):
         config = {
