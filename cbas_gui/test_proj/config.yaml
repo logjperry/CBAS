@@ -4,9 +4,17 @@ cameras:
   co: 1
   cx: 0.5
   cy: 0.5
+  number: 2
+  sl: 1
+  url: rtsp://admin:scnscn@192.168.1.54:8554/profile0
+- br: 0
+  chunk_size: 30
+  co: 1
+  cx: 0.5
+  cy: 0.5
   number: 1
   sl: 1
-  url: ''
+  url: rtsp://admin:scnscn@192.168.1.53:8554/profile0
 model_diagram: ''
 project_name: test_proj
 project_path: C:/Users/Jones-Lab/Documents/GitHub/CBAS/cbas_gui\test_proj

@@ -30,6 +30,9 @@ import os
 import math
 import streamprocessing
 
+ip_list = ['192.168.1.53','192.168.1.54']
+# rtsp://admin:scnscn@192.168.1.53:8554/profile0
+
 class CBAS_GUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -237,11 +240,11 @@ class CBAS_GUI(QWidget):
         self.number = self.cameras[self.current]['number']
 
         # generate pictures
-        for c in self.cameras:
-            try:
-                streamprocessing.frameGen('test_videos/compilationWTM.mp4',0,1,'cam'+str(c['number']))
-            except:
-                continue
+        
+        try:
+            streamprocessing.frameGen(self.url,0,1,'cam'+str(self.number))
+        except:
+            print("error loading camera")
         
 
         self.mainloaded = True
@@ -311,10 +314,13 @@ class CBAS_GUI(QWidget):
         slider_layout = QHBoxLayout()
         button_layout = QHBoxLayout()
 
-        url = QLineEdit(str(self.cameras[self.current]['url']))
-        url.setStyleSheet('border: 2px solid black')
-        text_layout.addWidget(url)
-        text_layout.addStretch(1)
+        self.url = QLineEdit(str(self.cameras[self.current]['url']))
+        self.url.setStyleSheet('border: 2px solid black')
+        urlLabel = QLabel()
+        urlLabel.setText('Cam URL:')
+        text_layout.addWidget(urlLabel)
+        text_layout.addWidget(self.url)
+        text_layout.addStretch()
 
 
         slider_layout.addWidget(Crop(self.sl, self.cx, self.cy, self.br, self.co, self))
@@ -395,6 +401,8 @@ class CBAS_GUI(QWidget):
             self.load_main()
 
     def save_cameras(self):
+
+        self.cameras[self.current]['url'] = self.url.text()
         config = {
             'project_name':self.project_name,
             'project_path':self.project_path,
@@ -624,17 +632,16 @@ class Crop(QWidget):
         
         layout1.addStretch()
 
-        brLayout.addWidget(brLabel)
         brLayout.addWidget(brMax)
         brLayout.addWidget(br)
         brLayout.addWidget(brMin)
+        brLayout.addWidget(brLabel)
         brLayout.addStretch()
 
-        
-        coLayout.addWidget(coLabel)
         coLayout.addWidget(coMax)
         coLayout.addWidget(co)
         coLayout.addWidget(coMin)
+        coLayout.addWidget(coLabel)
         coLayout.addStretch()
 
         layout2.addLayout(brLayout)
