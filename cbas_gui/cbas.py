@@ -307,6 +307,7 @@ class CBAS_GUI(QWidget):
         self.camera_container_layout = camera_container_layout
         camera_scroll.setWidget(camera_container)
         camera_scroll.setWidgetResizable(True)
+        
 
         # Bottom content
         bottom_layout = QVBoxLayout()
@@ -870,7 +871,7 @@ class BorderedLabel(QLabel):
         
         # Set up the pen with the color and width of the border
         pen = QPen(Qt.red)
-        pen.setWidth(8)  # Change the width to the desired border width
+        pen.setWidth(4)  # Change the width to the desired border width
         painter.setPen(pen)
 
         # Draw a rectangle on the very edge of the widget
