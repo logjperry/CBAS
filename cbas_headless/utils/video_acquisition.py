@@ -314,14 +314,6 @@ def record(project_config='undefined'):
     cams = [cam if cam['name'] in selected for cam in cconfig['cameras']]
 
 
-
-    
-
-
-
-
-
-
 def main():
     processes = []
 
