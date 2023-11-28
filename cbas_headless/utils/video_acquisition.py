@@ -137,16 +137,18 @@ class ChecklistBox:
         self.root = root
         self.root.title('Recording List')
 
+        header = tk.Label(root, text="Record From:", font=('Arial',9,'bold','underline'))
+        header.pack(side='top',pady=5)
+
         self.vars = []
         for choice in choices:
             var = StringVar(value=choice)
             self.vars.append(var)
             cb = Checkbutton(root, var=var, text=choice,
-                                onvalue=choice, offvalue="",
-                                anchor="w", width=20, 
+                                onvalue=choice, offvalue="", width=20, 
                                 relief="flat", highlightthickness=0
             )
-            cb.pack(side="top", fill="x", anchor="w")
+            cb.pack(side="top", fill="x",pady=5)
 
         self.crop_button = Button(root, text="Submit", command=self.root.destroy)
         self.crop_button.pack(pady=(20,30))
@@ -191,13 +193,13 @@ class RecordingDetails:
         self.content.grid_columnconfigure(numcols)
         # build column labels
         colLabels = [
-            tk.Label(self.content, text='Camera'),
-            tk.Label(self.content, text='Recording Time (days)'),
-            tk.Label(self.content, text='Segment Length (mins)')
+            tk.Label(self.content, text='Camera', font=('Arial',9,'bold','underline')),
+            tk.Label(self.content, text='Recording Time (days)', font=('Arial',9,'bold','underline')),
+            tk.Label(self.content, text='Segment Length (mins)', font=('Arial',9,'bold','underline'))
         ]
 
         for i in model_names:
-            colLabels.append(tk.Label(self.content, text=i))
+            colLabels.append(tk.Label(self.content, text=i, font=('Arial',9,'bold','underline')))
 
         # draw column labels
         for i, lbl in enumerate(colLabels):
@@ -270,7 +272,7 @@ class ProcessMonitor:
         content.grid_rowconfigure(numrows)
         content.grid_columnconfigure(numcols)
 
-        cameras = tk.Label(content, text='Cameras', font=('Arial',9,'bold','underline'))
+        cameras = tk.Label(content, text='Camera', font=('Arial',9,'bold','underline'))
         state = tk.Label(content, text="State", font=('Arial',9,'bold','underline'))
 
         cameras.grid(column=0,row=0,pady=5)
