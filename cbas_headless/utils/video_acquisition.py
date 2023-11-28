@@ -147,6 +147,9 @@ class ChecklistBox:
             )
             cb.pack(side="top", fill="x", anchor="w")
 
+        self.crop_button = Button(root, text="Submit", command=self.root.destroy)
+        self.crop_button.pack(pady=(20,30))
+
 
     def getCheckedItems(self):
         values = []
@@ -155,6 +158,8 @@ class ChecklistBox:
             if value:
                 values.append(value)
         return values
+    
+    
 
 
 # Generate a single frame of a stream
@@ -302,6 +307,13 @@ def record(project_config='undefined'):
     root = tk.Tk()
     app = ChecklistBox(root, cams)
     root.mainloop()
+
+    selected = app.getCheckedItems()
+
+    # go ahead and get the real cameras
+    cams = [cam if cam['name'] in selected for cam in cconfig['cameras']]
+
+
 
     
 
