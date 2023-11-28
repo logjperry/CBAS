@@ -164,6 +164,8 @@ class RecordingDetails:
     def __init__(self, root, cam_names, model_names):
         self.root = root
         self.root.title('Recording Details')
+
+        cam_names.append('all')
         
         self.content = tk.Frame(root)
         numcols = (len(model_names)+3)
