@@ -231,10 +231,11 @@ class RecordingDetails:
         self.submit_button.pack(pady=(20,30))
 
     def validateVals(self, dict):
-        for cam in dict:
+        for cam in dict.keys():
+            settings_list = dict[cam]
             try:
-                x = int(cam[0][0])
-                y = int(cam[1][0])
+                x = int(settings_list[0]['Time'])
+                y = int(settings_list[1]['Segment'])
             except:
                 return False
             if x>0 or y>0:
@@ -247,7 +248,7 @@ class RecordingDetails:
             l = outputDict[cam]
             for i in l:
                 for key in i.keys():
-                    print(i[key].get())
+                    i[key] = i[key].get()
         if self.validateVals(outputDict):
             return outputDict
         
