@@ -130,12 +130,10 @@ def create_project(project_name):
         yaml.dump(config, file, allow_unicode=True)
 
     # MODELS
-    # deg_path indicates the system path to the deepethogram model that is to be used
-    # dlc_path indicates the system path to the deeplabcut model that is to be used
+    # model_paths indicate the system paths to the machine learning models that are to be used
 
     config = {
-                'deg_path':'',
-                'dlc_path':''
+                'models':[]
             }
 
     with open(models, 'w+') as file:
@@ -574,3 +572,142 @@ def remove_camera(name, project_config='undefined'):
 
         
         
+def add_model(model_path, name, type="undefined", safe=True, project_config="undefined"):
+
+    valid_types = ['deepethogram','deeplabcut']
+
+    if type=='undefined' or type not in valid_types:
+        print(f"Please include a valid model type. Currently available types are {str(valid_types)}.")
+        exit(0)
+    
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            print('Project not found.')
+            exit(0)
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # grabbing the locations of the models yaml file
+        models = pconfig['models_path']
+
+        # extract the models config file
+        try:
+            with open(models, 'r') as file:
+                mconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # check to see if the model is functional
+        if safe:
+            # check if the path exists
+            if not os.path.exists(model_path):
+                print('Path does not exists.')
+                exit(0)
+
+            # split based on type
+            if type == 'deepethogram':
+                print('Processing deepethogram model.')
+            elif type == 'deeplabcut':
+                print('Processing deeplabcut model.')
+            
+        
+        # assuming that the model is functional, add it as a useable model
+        model_list = mconfig['models']
+        
+        # first check to see no duplicates exist
+        for model in model_list:
+            if model['path'] == model_path:
+                print('Found a model with this path already, please use a different path.')
+                exit(0)
+        
+        # great, there are no conflicts. go ahead and update the models config
+        model_config = {
+            'name':name,
+            'path':model_path,
+            'type':type
+        }
+        model_list.append(model_config)
+        new_config = {
+            'models':model_list
+        }
+
+        with open(models, 'w+') as file:
+            yaml.dump(new_config, file, allow_unicode=True)
+        
+    else:
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            print('Project not found.')
+            exit(0)
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # grabbing the locations of the models yaml file
+        models = pconfig['models_path']
+
+        # extract the models config file
+        try:
+            with open(models, 'r') as file:
+                mconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # check to see if the model is functional
+        if safe:
+            # check if the path exists
+            if not os.path.exists(model_path):
+                print('Path does not exists.')
+                exit(0)
+
+            # split based on type
+            if type == 'deepethogram':
+                print('Processing deepethogram model.')
+            elif type == 'deeplabcut':
+                print('Processing deeplabcut model.')
+            
+        
+        # assuming that the model is functional, add it as a useable model
+        model_list = mconfig['models']
+        
+        # first check to see no duplicates exist
+        for model in model_list:
+            if model['path'] == model_path:
+                print('Found a model with this path already, please use a different path.')
+                exit(0)
+        
+        # great, there are no conflicts. go ahead and update the models config
+        model_config = {
+            'name':name,
+            'path':model_path,
+            'type':type
+        }
+        model_list.append(model_config)
+        new_config = {
+            'models':model_list
+        }
+
+        with open(models, 'w+') as file:
+            yaml.dump(new_config, file, allow_unicode=True)
