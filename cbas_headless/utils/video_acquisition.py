@@ -158,47 +158,26 @@ class ChecklistBox:
             if value:
                 values.append(value)
         return values
-
-class RecordingDetail(tk.Frame):
-    def __init__(self, parent, model_names, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
-
-        self.vars = []
-        bg = self.cget("background")
-
-
-        for model in model_names:
-            var = tk.StringVar(value=model)
-            self.vars.append(var)
-            cb = tk.Checkbutton(self, var=var, text=model,
-                                onvalue=model, offvalue="",
-                                anchor="w", background=bg,
-                                relief="flat", highlightthickness=0
-            )
-            cb.pack(side="left", fill="x", anchor="w")
-
-
-    def getCheckedItems(self):
-        values = []
-        for var in self.vars:
-            value =  var.get()
-            if value:
-                values.append(value)
-        return values
     
     
 class RecordingDetails:
     def __init__(self, root, cam_names, model_names):
         self.root = root
         self.root.title('Recording Details')
+        
+        self.content = tk.Frame(root)
+        numcols = (len(model_names)+3)
+        numrows = (len(cam_names)+2)
+        self.content.grid(column=0, row=0, columnspan=numcols, rowspan=numrows)
 
-        self.vars = []
-        for cam in cam_names:
-            detail = RecordingDetail(root, model_names)
-            detail.pack(side="top", fill="x", anchor="w")
+        # make the labels
+        for i,cam in enumerate(cam_names):
+            lb = tk.Label(root, text=cam)
+            lb.grid(column=0, row=i)
+
 
         self.crop_button = Button(root, text="Submit", command=self.root.destroy)
-        self.crop_button.pack(pady=(20,30))
+        self.crop_button.grid(column=int(numcols/2), row=int(numrows/2))
 
 
 
