@@ -176,7 +176,7 @@ class RecordingDetails:
 
         self.settings = {}
         for i in cam_names:
-            self.settings[i] = [{'Time': tk.StringVar(value='0')},{'Segment': tk.StringVar(value='0')}]
+            self.settings[i] = [{'Time': tk.IntVar(value=1)},{'Segment': tk.IntVar(value=30)}]
             for x in model_names:
                 self.settings[i].append({x: tk.BooleanVar(value=True)})
         print(self.settings)
@@ -194,6 +194,7 @@ class RecordingDetails:
             tk.Label(self.content, text='Recording Time (days)'),
             tk.Label(self.content, text='Segment Length (mins)')
         ]
+
         for i in model_names:
             colLabels.append(tk.Label(self.content, text=i))
 
@@ -226,6 +227,11 @@ class RecordingDetails:
 
         self.submit_button = Button(root, text="Submit", command=self.root.destroy)   
         self.submit_button.pack(pady=(20,30))
+
+    def validateVals(dict):
+        for cam in dict:
+            x = int(cam[0][0])
+            y = int(cam[1][0])
 
     def getVals(self):
         outputDict = self.settings.copy()
