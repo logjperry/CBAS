@@ -176,9 +176,9 @@ class RecordingDetails:
 
         self.settings = {}
         for i in cam_names:
-            self.settings[i] = [{'Time': None},{'Segment': None}]
+            self.settings[i] = [{'Time': tk.StringVar(value='0')},{'Segment': tk.StringVar(value='0')}]
             for x in model_names:
-                self.settings[i].append({x: None})
+                self.settings[i].append({x: tk.BooleanVar(value=True)})
         print(self.settings)
 
         # force the number of columns to be odd
@@ -207,6 +207,10 @@ class RecordingDetails:
             lb.grid(column=0, row=i+1)
 
         for x in range(1, len(cam_names)+1):
+            if x!=len(cam_names)+1:
+                cam = cam_names[x-1]
+            cam = 'all'
+            
             te = tk.Entry(self.content)
             te.grid(column=1, row=x)
             se = tk.Entry(self.content)
@@ -214,7 +218,7 @@ class RecordingDetails:
 
 
             for y, name in enumerate(model_names):
-                mdn = Checkbutton(self.content, onvalue=name, offvalue='')
+                mdn = Checkbutton(self.content, var=self.settings[cam][name], onvalue=True, offvalue=False)
                 mdn.grid(column=y+3, row=x)
 
 
