@@ -167,18 +167,38 @@ class RecordingDetails:
         
         self.content = tk.Frame(root)
         numcols = (len(model_names)+3)
-        numrows = (len(cam_names)+2)
+        numrows = (len(cam_names)+3)
         self.content.grid(column=0, row=0, columnspan=numcols, rowspan=numrows)
+        #build column labels
+        colLabels = [
+            tk.Label(root, text='Camera'),
+            tk.Label(root, text='Rec Time'),
+            tk.Label(root, text='Segment Length')
+        ]
+        for i in model_names:
+            colLabels.append(tk.Label(root, text=i))
+
+        #draw column labels
+        for i, lbl in enumerate(colLabels):
+            lbl.grid(column=i, row=0)
 
         # make the labels
         for i,cam in enumerate(cam_names):
             lb = tk.Label(root, text=cam)
-            lb.grid(column=0, row=i)
+            lb.grid(column=0, row=i+1)
+
+            for x in range(1, len(colLabels)):
+                te = tk.Entry(root)
+                te.grid(column=1, row=x)
+                se = tk.Entry(root)
+                se.grid(column=2, row=x)
+                for y, name in enumerate(model_names):
+                    mdn = Checkbutton(root, onvalue=name, offvalue='')
+                    mdn.grid(column=y+3, row=x)
 
 
         self.crop_button = Button(root, text="Submit", command=self.root.destroy)
-        self.crop_button.grid(column=int(numcols/2), row=int(numrows/2))
-
+        self.crop_button.grid(column=int(numcols/2), row=int(numrows-1))       
 
 
 # Generate a single frame of a stream
