@@ -161,6 +161,8 @@ class ChecklistBox:
     
     
 class RecordingDetails:
+    
+
     def __init__(self, root, cam_names, model_names):
         self.root = root
         self.root.title('Recording Details')
@@ -171,6 +173,13 @@ class RecordingDetails:
         self.content = tk.Frame(root)
         numcols = (len(model_names)+3)
         numrows = (len(cam_names)+3)
+
+        self.settings = {}
+        for i in cam_names:
+            self.settings[i] = [{'Time': None},{'Segment': None}]
+            for x in model_names:
+                self.settings[i].append({x: None})
+        print(self.settings)
 
         # force the number of columns to be odd
         if numcols%2==0:
