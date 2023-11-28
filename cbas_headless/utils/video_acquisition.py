@@ -488,6 +488,9 @@ def record(project_config='undefined'):
     app = RecordingDetails(root, cam_names, model_names)
     root.mainloop()
 
+    # getting the settings dictionary
+    values = app.getVals()
+
     # make the recording record 
     pids = ['10','11']
     lookup = {
