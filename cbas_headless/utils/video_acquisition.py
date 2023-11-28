@@ -6,6 +6,7 @@ import subprocess
 from multiprocessing import Process
 import yaml
 from sys import exit
+import psutil
 
 class ImageCropTool:
     def __init__(self, root, images, cconfig):
@@ -247,6 +248,58 @@ class RecordingDetails:
                 
 
 
+class ProcessMonitor:
+    def __init__(self, root, pids, lookup):
+        self.root = root
+        self.root.title('Process Monitor')
+
+        colors = []
+
+        for pid in pids:
+            alive = False
+            if psutil.pid_exists(int(pid)):
+                colors.append('green yellow')
+                alive = True
+            else:
+                colors.append('firebrick1')
+
+            if alive:
+                # check for files ready to be inferenced
+                print('checking for overflowing files')
+            
+
+        
+        content = tk.Frame(root)
+        numcols = 2
+        numrows = (len(pids)+2)
+        content.grid_rowconfigure(numrows)
+        content.grid_columnconfigure(numcols)
+
+        cameras = tk.Label(content, text='Cameras', font=('Arial',9,'bold','underline'))
+        state = tk.Label(content, text="State", font=('Arial',9,'bold','underline'))
+
+        cameras.grid(column=0,row=0,pady=5)
+        state.grid(column=1,row=0,pady=5)
+        
+
+        for i,pid in enumerate(pids):
+            cam = lookup[str(pid)]
+            name = tk.Label(content, text=cam)
+            color = tk.Label(content, text="", bg=colors[i], width=3)
+
+            name.grid(column=0,row=(i+2),pady=5)
+            color.grid(column=1,row=(i+2),pady=5)
+
+        content.pack(side="top", pady=(10,5))
+
+            
+
+
+        self.close = Button(root, text="Close", command=self.root.destroy)
+        self.close.pack(pady=(20,30))
+
+
+
 # Generate a single frame of a stream
 def generate_image(rtsp_url, frame_location):
     command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -vf \"select=eq(n\,34)\" -vframes 1 -y {frame_location}"
@@ -382,10 +435,19 @@ def select_rois(project_config='undefined'):
     with open(cameras, 'w+') as file:
         yaml.dump(config, file, allow_unicode=True)
 
-def monitor_processes(processes):
+def monitor_processes(processes, lookup):
+
+    #pids = [process.pid for process in processes]
+
+    root = tk.Tk()
+    app = ProcessMonitor(root, processes, lookup)
+    root.mainloop()
+
     # wait for all processes to finish
-    for process in processes:
-        process.join()
+    #for process in processes:
+    #    process.join()
+
+
 
 
 
@@ -415,6 +477,12 @@ def record(project_config='undefined'):
     root.mainloop()
 
     # make the recording record 
+    pids = ['10','11']
+    lookup = {
+        '10':'cam1',
+        '11':'cam2'
+    }
+    monitor_processes(pids, lookup)
 
 
 
