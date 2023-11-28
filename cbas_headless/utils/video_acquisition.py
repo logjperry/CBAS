@@ -158,8 +158,48 @@ class ChecklistBox:
             if value:
                 values.append(value)
         return values
+
+class RecordingDetail(tk.Frame):
+    def __init__(self, parent, model_names, **kwargs):
+        tk.Frame.__init__(self, parent, **kwargs)
+
+        self.vars = []
+        bg = self.cget("background")
+
+
+        for model in model_names:
+            var = tk.StringVar(value=model)
+            self.vars.append(var)
+            cb = tk.Checkbutton(self, var=var, text=model,
+                                onvalue=model, offvalue="",
+                                anchor="w", background=bg,
+                                relief="flat", highlightthickness=0
+            )
+            cb.pack(side="left", fill="x", anchor="w")
+
+
+    def getCheckedItems(self):
+        values = []
+        for var in self.vars:
+            value =  var.get()
+            if value:
+                values.append(value)
+        return values
     
     
+class RecordingDetails:
+    def __init__(self, root, cam_names, model_names):
+        self.root = root
+        self.root.title('Recording Details')
+
+        self.vars = []
+        for cam in cam_names:
+            detail = RecordingDetail(root, model_names)
+            detail.pack(side="top", fill="x", anchor="w")
+
+        self.crop_button = Button(root, text="Submit", command=self.root.destroy)
+        self.crop_button.pack(pady=(20,30))
+
 
 
 # Generate a single frame of a stream
@@ -304,6 +344,8 @@ def record(project_config='undefined'):
     # Create a simple pop-up to select which cameras to record from
     cams = [cam['name'] for cam in cconfig['cameras']]
 
+    cams = ['cam1','cam2']
+
     root = tk.Tk()
     app = ChecklistBox(root, cams)
     root.mainloop()
@@ -311,7 +353,15 @@ def record(project_config='undefined'):
     selected = app.getCheckedItems()
 
     # go ahead and get the real cameras
-    cams = [cam if cam['name'] in selected for cam in cconfig['cameras']]
+    cams = [cam for cam in cconfig['cameras'] if cam['name'] in selected]
+
+    # Make a little pop-up to ask for the recording details
+    model_names = ['model 1', 'model 2']
+    cam_names = selected 
+
+    root = tk.Tk()
+    app = RecordingDetails(root, cam_names, model_names)
+    root.mainloop()
 
 
 
