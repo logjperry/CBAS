@@ -140,7 +140,7 @@ class ChecklistBox:
         for choice in choices:
             var = StringVar(value=choice)
             self.vars.append(var)
-            cb = Checkbutton(self, var=var, text=choice,
+            cb = Checkbutton(root, var=var, text=choice,
                                 onvalue=choice, offvalue="",
                                 anchor="w", width=20, 
                                 relief="flat", highlightthickness=0
@@ -298,8 +298,8 @@ def record(project_config='undefined'):
 
     # Create a simple pop-up to select which cameras to record from
     cams = [cam['name'] for cam in cconfig['cameras']]
+
     root = tk.Tk()
-    root.geometry('100x300')
     app = ChecklistBox(root, cams)
     root.mainloop()
 
