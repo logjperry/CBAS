@@ -628,6 +628,8 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         
         # assuming that the model is functional, add it as a useable model
         model_list = mconfig['models']
+        if model_list is None:
+            model_list = []
         
         # first check to see no duplicates exist
         for model in model_list:
@@ -691,6 +693,8 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         
         # assuming that the model is functional, add it as a useable model
         model_list = mconfig['models']
+        if model_list is None:
+            model_list = []
         
         # first check to see no duplicates exist
         for model in model_list:
