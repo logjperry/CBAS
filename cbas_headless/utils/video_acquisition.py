@@ -174,6 +174,11 @@ class RecordingDetails:
         numrows = (len(cam_names)+3)
 
         self.settings = {}
+        for i in cam_names:
+            self.settings[i] = [{'Time': None},{'Segment': None}]
+            for x in model_names:
+                self.settings[i].append({x: None})
+        print(self.settings)
 
         # force the number of columns to be odd
         if numcols%2==0:
@@ -200,16 +205,16 @@ class RecordingDetails:
             lb = tk.Label(self.content, text=cam)
             lb.grid(column=0, row=i+1)
 
-            for x in range(1, len(cam_names)+1):
-                te = tk.Entry(self.content)
-                te.grid(column=1, row=x)
-                se = tk.Entry(self.content)
-                se.grid(column=2, row=x)
+        for x in range(1, len(cam_names)+1):
+            te = tk.Entry(self.content)
+            te.grid(column=1, row=x)
+            se = tk.Entry(self.content)
+            se.grid(column=2, row=x)
 
 
-                for y, name in enumerate(model_names):
-                    mdn = Checkbutton(self.content, onvalue=name, offvalue='')
-                    mdn.grid(column=y+3, row=x)
+            for y, name in enumerate(model_names):
+                mdn = Checkbutton(self.content, onvalue=name, offvalue='')
+                mdn.grid(column=y+3, row=x)
 
 
         self.content.pack(pady=(20,30)) 
