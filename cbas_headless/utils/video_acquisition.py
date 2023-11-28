@@ -137,13 +137,12 @@ class ChecklistBox:
         self.root.title('Recording List')
 
         self.vars = []
-        bg = self.cget("background")
         for choice in choices:
             var = tk.StringVar(value=choice)
             self.vars.append(var)
             cb = tk.Checkbutton(self, var=var, text=choice,
                                 onvalue=choice, offvalue="",
-                                anchor="w", width=20, background=bg,
+                                anchor="w", width=20, 
                                 relief="flat", highlightthickness=0
             )
             cb.pack(side="top", fill="x", anchor="w")
