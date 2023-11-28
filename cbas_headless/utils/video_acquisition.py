@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, Button
+from tkinter import filedialog, Button, StringVar, Checkbutton
 from PIL import Image, ImageTk
 import os
 import subprocess
@@ -148,9 +148,9 @@ class ChecklistBox:
 
         self.vars = []
         for choice in choices:
-            var = tk.StringVar(value=choice)
+            var = StringVar(value=choice)
             self.vars.append(var)
-            cb = tk.Checkbutton(self, var=var, text=choice,
+            cb = Checkbutton(self, var=var, text=choice,
                                 onvalue=choice, offvalue="",
                                 anchor="w", width=20, 
                                 relief="flat", highlightthickness=0
