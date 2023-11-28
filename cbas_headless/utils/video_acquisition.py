@@ -154,7 +154,7 @@ class ChecklistBox:
     def getCheckedItems(self):
         values = []
         for var in self.vars:
-            value =  var.get()
+            value = var.get()
             if value:
                 values.append(value)
         return values
@@ -173,15 +173,17 @@ class RecordingDetails:
         if numcols%2==0:
             numcols += 1 
 
-        self.content.grid(column=0, row=0, columnspan=numcols, rowspan=numrows)
+        #self.content.grid(column=0, row=0, columnspan=numcols, rowspan=numrows)
+        self.content.grid_rowconfigure(numrows)
+        self.content.grid_columnconfigure(numcols)
         # build column labels
         colLabels = [
-            tk.Label(root, text='Camera'),
-            tk.Label(root, text='Recording Time (days)'),
-            tk.Label(root, text='Segment Length (mins)')
+            tk.Label(self.content, text='Camera'),
+            tk.Label(self.content, text='Recording Time (days)'),
+            tk.Label(self.content, text='Segment Length (mins)')
         ]
         for i in model_names:
-            colLabels.append(tk.Label(root, text=i))
+            colLabels.append(tk.Label(self.content, text=i))
 
         # draw column labels
         for i, lbl in enumerate(colLabels):
@@ -189,23 +191,25 @@ class RecordingDetails:
 
         # make the camera labels
         for i,cam in enumerate(cam_names):
-            lb = tk.Label(root, text=cam)
+            lb = tk.Label(self.content, text=cam)
             lb.grid(column=0, row=i+1)
 
             for x in range(1, len(cam_names)+1):
-                te = tk.Entry(root)
+                te = tk.Entry(self.content)
                 te.grid(column=1, row=x)
-                se = tk.Entry(root)
+                se = tk.Entry(self.content)
                 se.grid(column=2, row=x)
 
-                
+
                 for y, name in enumerate(model_names):
-                    mdn = Checkbutton(root, onvalue=name, offvalue='')
+                    mdn = Checkbutton(self.content, onvalue=name, offvalue='')
                     mdn.grid(column=y+3, row=x)
 
 
-        self.crop_button = Button(root, text="Submit", command=self.root.destroy)
-        self.crop_button.grid(column=0, row=int(numrows))       
+        self.content.pack(pady=(20,30)) 
+
+        self.submit_button = Button(root, text="Submit", command=self.root.destroy)   
+        self.submit_button.pack(pady=(20,30))    
 
 
 # Generate a single frame of a stream
