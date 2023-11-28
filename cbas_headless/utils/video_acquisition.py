@@ -177,7 +177,7 @@ class RecordingDetails:
 
         self.settings = {}
         for i in cam_names:
-            self.settings[i] = [{'Time': tk.IntVar(value=1)},{'Segment': tk.IntVar(value=30)}]
+            self.settings[i] = [{'Time': tk.StringVar(value=1)},{'Segment': tk.StringVar(value=30)}]
             for x in model_names:
                 self.settings[i].append({x: tk.BooleanVar(value=True)})
 
@@ -225,10 +225,10 @@ class RecordingDetails:
 
         self.content.pack(pady=(20,30)) 
 
-        self.submit_button = Button(root, text="Submit", command=self.root.destroy)   
+        self.submit_button = Button(root, text="Submit", command=self.kill_if_done)
         self.submit_button.pack(pady=(20,30))
 
-    def validateVals(dict):
+    def validateVals(self, dict):
         for cam in dict:
             try:
                 x = int(cam[0][0])
@@ -241,10 +241,18 @@ class RecordingDetails:
 
     def getVals(self):
         outputDict = self.settings.copy()
-        for cam in outputDict:
-            for i in cam:
-                i[0] = i[0].get()
-        return outputDict
+        for cam in outputDict.keys():
+            l = outputDict[cam]
+            for i in l:
+                for key in i.keys():
+                    print(i[key].get())
+        if self.validateVals(outputDict):
+            return outputDict
+        
+    def kill_if_done(self):
+        if self.getVals()!=None:
+            self.root.destroy()
+            
                 
 
 
