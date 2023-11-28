@@ -179,7 +179,6 @@ class RecordingDetails:
             self.settings[i] = [{'Time': tk.IntVar(value=1)},{'Segment': tk.IntVar(value=30)}]
             for x in model_names:
                 self.settings[i].append({x: tk.BooleanVar(value=True)})
-        print(self.settings)
 
         # force the number of columns to be odd
         if numcols%2==0:
@@ -230,8 +229,14 @@ class RecordingDetails:
 
     def validateVals(dict):
         for cam in dict:
-            x = int(cam[0][0])
-            y = int(cam[1][0])
+            try:
+                x = int(cam[0][0])
+                y = int(cam[1][0])
+            except:
+                return False
+            if x>0 or y>0:
+                return True
+            return False
 
     def getVals(self):
         outputDict = self.settings.copy()
