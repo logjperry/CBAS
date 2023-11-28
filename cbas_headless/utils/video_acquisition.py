@@ -141,9 +141,10 @@ class ImageCropTool:
         return self.regions
 
 # https://stackoverflow.com/questions/50398649/python-tkinter-tk-support-checklist-box
-class ChecklistBox(tk.Frame):
-    def __init__(self, parent, choices, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+class ChecklistBox:
+    def __init__(self, root, choices):
+        self.root = root
+        self.root.title('Recording List')
 
         self.vars = []
         bg = self.cget("background")
@@ -167,11 +168,12 @@ class ChecklistBox(tk.Frame):
         return values
 
 
-
+# Generate a single frame of a stream
 def generate_image(rtsp_url, frame_location):
     command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -vf \"select=eq(n\,34)\" -vframes 1 -y {frame_location}"
     subprocess.call(command, shell=True)
 
+# Create an FFMPEG process for recording the stream
 def record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy):
     command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -r 10 -t {time} -filter_complex \"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy}),scale=256:256[cropped]\" -map \"[cropped]\" -f segment -segment_time {seg_time} -reset_timestamps 1 -y {video_dir}/recording_{name}_%05d.mp4"
     subprocess.call(command, shell=True)
@@ -266,7 +268,14 @@ def select_rois(project_config='undefined'):
     app = ImageCropTool(root, images, cconfig)
     root.mainloop()
     
+    # generate a 2d array of cams x regions
     values = app.generate_regions()
+
+    # check to see if the number values equals the number of cameras
+    num_cams = len(cconfig['cameras'])
+    if len(values)!=num_cams:
+        print('User aborted roi selection.')
+        exit(0)
     
 
     # update the roi values
@@ -304,6 +313,8 @@ def record(project_config='undefined'):
     root.geometry('100x300')
     app = ChecklistBox(root, cams)
     root.mainloop()
+
+    
 
 
 
