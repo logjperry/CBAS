@@ -187,14 +187,14 @@ class RecordingDetails:
             lb = tk.Label(root, text=cam)
             lb.grid(column=0, row=i+1)
 
-            for x in range(1, len(colLabels)):
-                te = tk.Entry(root)
-                te.grid(column=1, row=x)
-                se = tk.Entry(root)
-                se.grid(column=2, row=x)
-                for y, name in enumerate(model_names):
-                    mdn = Checkbutton(root, onvalue=name, offvalue='')
-                    mdn.grid(column=y+3, row=x)
+        for x in range(1, len(colLabels)):
+            te = tk.Entry(root)
+            te.grid(column=1, row=x)
+            se = tk.Entry(root)
+            se.grid(column=2, row=x)
+        for y, name in enumerate(model_names):
+            mdn = Checkbutton(root, onvalue=name, offvalue='')
+            mdn.grid(column=y+3, row=x)
 
 
         self.crop_button = Button(root, text="Submit", command=self.root.destroy)
