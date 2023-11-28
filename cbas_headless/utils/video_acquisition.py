@@ -343,14 +343,6 @@ def record(project_config='undefined'):
     root.mainloop()
 
 
-
-    
-
-
-
-
-
-
 def main():
     processes = []
 
