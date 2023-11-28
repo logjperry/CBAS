@@ -1,12 +1,12 @@
 brightness: 0
 cameras:
-- height: 0.31555555555555553
+- height: 0.31333333333333335
   name: cam1
   rtsp_url: rtsp://admin:password@192.168.1.123:8554/profile0
   video_dir: C:\Users\Jones-Lab\Documents\GitHub\CBAS\cbas_headless\test\core\videos\cam1
-  width: 0.1975
-  x: 0.3375
-  y: 0.36
+  width: 0.24375
+  x: 0.33625
+  y: 0.42
 contrast: 1
 framerate: 10
 scale: 256

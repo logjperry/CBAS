@@ -16,12 +16,6 @@ class ImageCropTool:
         self.canvas = tk.Canvas(self.root)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Create a menu for opening images
-        menu = tk.Menu(self.root)
-        self.root.config(menu=menu)
-        file_menu = tk.Menu(menu)
-        menu.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Open...", command=self.open_image)
 
         # Bind mouse events for drawing the rectangle
         self.canvas.bind("<Button-1>", self.on_press)
@@ -29,7 +23,7 @@ class ImageCropTool:
 
         # Button for saving the region of interest (ROI)
         self.crop_button = Button(root, text="Save ROI", command=self.crop_image)
-        self.crop_button.pack()#side=tk.BOTTOM)
+        self.crop_button.pack(pady=(20,30))
 
         # Variables to store image information and cropping coordinates
         self.filename = None
@@ -43,20 +37,7 @@ class ImageCropTool:
         self.cam_list = cconfig['cameras'].copy()
 
         # Process images for cropping
-        self.getImageCropRegions(images)
-
-    def open_image(self):
-        # Function to open and display an image
-        self.filename = filedialog.askopenfilename()
-        if not self.filename:
-            return
-
-        self.image = Image.open(self.filename)
-        self.image = self.resize_image(self.image, 800, 600)
-        self.tk_image = ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
-
-        
+        self.getImageCropRegions(images) 
 
 
     def resize_image(self, image, width, height):
@@ -115,7 +96,8 @@ class ImageCropTool:
         self.image = Image.open(im_list[0])
         self.image = self.resize_image(self.image, 800, 600)
         self.tk_image = ImageTk.PhotoImage(self.image)
-        self.image_on_canvas = self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
+        self.image_on_canvas = self.canvas.create_image(20, 20, anchor=tk.NW, image=self.tk_image)
+        
 
         # Draw the current crop region
         w = self.cam_list[0]['width'] * self.image.width
@@ -269,7 +251,7 @@ def select_rois(project_config='undefined'):
         process.join()
 
     root = tk.Tk()
-    root.geometry('800x600')
+    root.geometry('840x600')
     app = ImageCropTool(root, images, cconfig)
     root.mainloop()
     
