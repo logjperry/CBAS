@@ -177,9 +177,9 @@ class RecordingDetails:
 
         self.settings = {}
         for i in cam_names:
-            self.settings[i] = [{'Time': None},{'Segment': None}]
+            self.settings[i] = [{'Time': tk.IntVar(value=1)},{'Segment': tk.IntVar(value=30)}]
             for x in model_names:
-                self.settings[i].append({x: None})
+                self.settings[i].append({x: tk.BooleanVar(value=True)})
         print(self.settings)
 
         # force the number of columns to be odd
@@ -195,6 +195,7 @@ class RecordingDetails:
             tk.Label(self.content, text='Recording Time (days)'),
             tk.Label(self.content, text='Segment Length (mins)')
         ]
+
         for i in model_names:
             colLabels.append(tk.Label(self.content, text=i))
 
@@ -208,21 +209,38 @@ class RecordingDetails:
             lb.grid(column=0, row=i+1)
 
         for x in range(1, len(cam_names)+1):
-            te = tk.Entry(self.content)
+            if x!=len(cam_names)+1:
+                cam = cam_names[x-1]
+            cam = 'all'
+            
+            te = tk.Entry(self.content, textvariable=self.settings[cam][0]['Time'])
             te.grid(column=1, row=x)
-            se = tk.Entry(self.content)
+            se = tk.Entry(self.content, textvariable=self.settings[cam][1]['Segment'])
             se.grid(column=2, row=x)
 
 
             for y, name in enumerate(model_names):
-                mdn = Checkbutton(self.content, onvalue=name, offvalue='')
+                mdn = Checkbutton(self.content, var=self.settings[cam][y+2][name], onvalue=True, offvalue=False)
                 mdn.grid(column=y+3, row=x)
 
 
         self.content.pack(pady=(20,30)) 
 
         self.submit_button = Button(root, text="Submit", command=self.root.destroy)   
-        self.submit_button.pack(pady=(20,30))    
+        self.submit_button.pack(pady=(20,30))
+
+    def validateVals(dict):
+        for cam in dict:
+            x = int(cam[0][0])
+            y = int(cam[1][0])
+
+    def getVals(self):
+        outputDict = self.settings.copy()
+        for cam in outputDict:
+            for i in cam:
+                i[0] = i[0].get()
+        return outputDict
+                
 
 
 class ProcessMonitor:
