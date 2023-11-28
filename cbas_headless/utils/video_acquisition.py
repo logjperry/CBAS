@@ -7,7 +7,6 @@ from multiprocessing import Process
 import yaml
 from sys import exit
 import psutil
-import copy
 
 class ImageCropTool:
     def __init__(self, root, images, cconfig):
@@ -244,7 +243,7 @@ class RecordingDetails:
             return False
 
     def getVals(self):
-        outputDict = self.settings.deepcopy()
+        outputDict = self.settings.copy()
         for cam in outputDict.keys():
             l = outputDict[cam]
             for i in l:
