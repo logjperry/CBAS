@@ -147,6 +147,32 @@ class ImageCropTool:
         # Return all the saved regions
         return self.regions
 
+# https://stackoverflow.com/questions/50398649/python-tkinter-tk-support-checklist-box
+class ChecklistBox(tk.Frame):
+    def __init__(self, parent, choices, **kwargs):
+        tk.Frame.__init__(self, parent, **kwargs)
+
+        self.vars = []
+        bg = self.cget("background")
+        for choice in choices:
+            var = tk.StringVar(value=choice)
+            self.vars.append(var)
+            cb = tk.Checkbutton(self, var=var, text=choice,
+                                onvalue=choice, offvalue="",
+                                anchor="w", width=20, background=bg,
+                                relief="flat", highlightthickness=0
+            )
+            cb.pack(side="top", fill="x", anchor="w")
+
+
+    def getCheckedItems(self):
+        values = []
+        for var in self.vars:
+            value =  var.get()
+            if value:
+                values.append(value)
+        return values
+
 
 
 def generate_image(rtsp_url, frame_location):
@@ -274,6 +300,19 @@ def select_rois(project_config='undefined'):
 
     with open(cameras, 'w+') as file:
         yaml.dump(config, file, allow_unicode=True)
+
+
+def record(project_config='undefined'):
+    cconfig, videos, frames, cameras = load_cameras(project_config)
+
+    # Create a simple pop-up to select which cameras to record from
+    cams = [cam['name'] for cam in cconfig['cameras']]
+    root = tk.Tk()
+    root.geometry('100x300')
+    app = ChecklistBox(root, cams)
+    root.mainloop()
+
+
 
 
 
