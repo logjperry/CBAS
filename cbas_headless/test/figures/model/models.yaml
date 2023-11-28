@@ -1,2 +1,4 @@
-deg_path: ''
-dlc_path: ''
+models:
+- name: deepethogram
+  path: C:\Users\Jones-Lab\Documents\GitHub\CBAS\cbas_headless\test\figures\model
+  type: deepethogram
