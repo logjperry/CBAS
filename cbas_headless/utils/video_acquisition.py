@@ -37,7 +37,18 @@ class ImageCropTool:
         self.cam_list = cconfig['cameras'].copy()
 
         # Process images for cropping
-        self.getImageCropRegions(images) 
+        self.getImageCropRegions(images)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        # Perform any necessary cleanup here
+        print("Closing the application...")
+
+        # You can also ask for confirmation before closing
+        if self.messagebox.askokcancel("Quit", "Do you want to quit?"):
+            # This ensures a "soft" close
+            self.root.destroy()
 
 
     def resize_image(self, image, width, height):
