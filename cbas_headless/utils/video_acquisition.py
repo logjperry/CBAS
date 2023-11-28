@@ -211,21 +211,29 @@ class RecordingDetails:
                 cam = cam_names[x-1]
             cam = 'all'
             
-            te = tk.Entry(self.content)
+            te = tk.Entry(self.content, textvariable=self.settings[cam][0]['Time'])
             te.grid(column=1, row=x)
-            se = tk.Entry(self.content)
+            se = tk.Entry(self.content, textvariable=self.settings[cam][1]['Segment'])
             se.grid(column=2, row=x)
 
 
             for y, name in enumerate(model_names):
-                mdn = Checkbutton(self.content, var=self.settings[cam][name], onvalue=True, offvalue=False)
+                mdn = Checkbutton(self.content, var=self.settings[cam][y+2][name], onvalue=True, offvalue=False)
                 mdn.grid(column=y+3, row=x)
 
 
         self.content.pack(pady=(20,30)) 
 
         self.submit_button = Button(root, text="Submit", command=self.root.destroy)   
-        self.submit_button.pack(pady=(20,30))    
+        self.submit_button.pack(pady=(20,30))
+
+    def getVals(self):
+        outputDict = self.settings.copy()
+        for cam in outputDict:
+            for i in cam:
+                i[0] = i[0].get()
+        return outputDict
+                
 
 
 # Generate a single frame of a stream
