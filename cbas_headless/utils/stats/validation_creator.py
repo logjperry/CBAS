@@ -1,15 +1,11 @@
 
 import sys
 import os
-
 import time
 import numpy as np
-
 import json
-
 import yaml
 from tabulate import tabulate
-
 import ffmpeg
 
 def get_size(start_path = '.'):
