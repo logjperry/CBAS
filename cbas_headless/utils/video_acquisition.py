@@ -165,6 +165,7 @@ class RecordingDetails:
         self.root = root
         self.root.title('Recording Details')
 
+        # adding an option for setting all of the cameras to the same values
         cam_names.append('all')
         
         self.content = tk.Frame(root)
@@ -196,16 +197,16 @@ class RecordingDetails:
             lb = tk.Label(self.content, text=cam)
             lb.grid(column=0, row=i+1)
 
-            for x in range(1, len(cam_names)+1):
-                te = tk.Entry(self.content)
-                te.grid(column=1, row=x)
-                se = tk.Entry(self.content)
-                se.grid(column=2, row=x)
+        for x in range(1, len(cam_names)+1):
+            te = tk.Entry(self.content)
+            te.grid(column=1, row=x)
+            se = tk.Entry(self.content)
+            se.grid(column=2, row=x)
 
 
-                for y, name in enumerate(model_names):
-                    mdn = Checkbutton(self.content, onvalue=name, offvalue='')
-                    mdn.grid(column=y+3, row=x)
+            for y, name in enumerate(model_names):
+                mdn = Checkbutton(self.content, onvalue=name, offvalue='')
+                mdn.grid(column=y+3, row=x)
 
 
         self.content.pack(pady=(20,30)) 
@@ -349,6 +350,12 @@ def select_rois(project_config='undefined'):
     with open(cameras, 'w+') as file:
         yaml.dump(config, file, allow_unicode=True)
 
+def monitor_processes(processes):
+    # wait for all processes to finish
+    for process in processes:
+        process.join()
+
+
 
 def record(project_config='undefined'):
     cconfig, videos, frames, cameras = load_cameras(project_config)
@@ -374,6 +381,9 @@ def record(project_config='undefined'):
     root = tk.Tk()
     app = RecordingDetails(root, cam_names, model_names)
     root.mainloop()
+
+    # make the recording record 
+
 
 
 def main():
