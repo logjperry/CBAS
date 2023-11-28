@@ -200,6 +200,13 @@ class RecordingDetails:
         self.crop_button = Button(root, text="Submit", command=self.root.destroy)
         self.crop_button.pack(pady=(20,30))
 
+class AnalysisSettings:
+    def __init__(self, root, cam_names, model_names):
+        self.root = root
+        self.root.title('Recording Details')
+        
+        
+
 
 
 # Generate a single frame of a stream
