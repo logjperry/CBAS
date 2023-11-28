@@ -130,9 +130,10 @@ class ImageCropTool:
         return self.regions
 
 # https://stackoverflow.com/questions/50398649/python-tkinter-tk-support-checklist-box
-class ChecklistBox(tk.Frame):
-    def __init__(self, parent, choices, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+class ChecklistBox:
+    def __init__(self, root, choices):
+        self.root = root
+        self.root.title('Recording List')
 
         self.vars = []
         bg = self.cget("background")
@@ -293,6 +294,8 @@ def record(project_config='undefined'):
     root.geometry('100x300')
     app = ChecklistBox(root, cams)
     root.mainloop()
+
+    
 
 
 
