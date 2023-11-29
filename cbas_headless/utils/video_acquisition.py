@@ -530,6 +530,15 @@ def buildModelDict(model_names, values):
     modelDict[None].remove('all')
     return modelDict
 
+def buildCameraDict(camera_names, values):
+    cameraDict = {key: {'recording_length':0,'segment_length':0} for key in camera_names}
+
+    for key, val in values.items():
+        print(key)
+        print(val)
+
+    return cameraDict
+
 
 
 def record(project_config='undefined', safe=True):
@@ -553,10 +562,9 @@ def record(project_config='undefined', safe=True):
     root.mainloop()
 
     # getting the settings dictionary
-    values = app.getVals()
-    modelDict = buildModelDict(model_names, values)
-
-
+    settings = app.getVals()
+    modelDict = buildModelDict(model_names, settings)
+    cameraDict = buildCameraDict(cam_names, settings)
 
     # assume that the dictionary is {'model':['cam1','cam2']}, None is a valid model
 
