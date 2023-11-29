@@ -619,6 +619,17 @@ def record(project_config='undefined', safe=True):
 
     # start the recordings, if something fails, erase all of this scorched earth style
 
+    # create and start a new process for each RTSP IP
+    # for i, ip in enumerate(rtsp_ips):
+    #     # you can modify the filename pattern as per your needs
+    #     cw = values[i][0]
+    #     ch = values[i][1]
+    #     cx = values[i][2]
+    #     cy = values[i][3]
+    #     process = Process(target=record_stream, args=(ip, i+1, 'username', 'password', time, seg, cw, ch, cx, cy))
+    #     process.start()
+    #     processes.append(process)
+
     # assuming that the processes actually started and are working, dump the contents of the config file into the recording folder
     # careful, any fault here would destroy child processes
     try:
