@@ -7,6 +7,8 @@ from multiprocessing import Process
 import yaml
 from sys import exit
 import psutil
+from datetime import datetime
+import time
 
 class ImageCropTool:
     def __init__(self, root, images, cconfig):
@@ -391,6 +393,52 @@ def load_cameras(project_config='undefined'):
 
         return (cconfig, videos, frames, cameras)
 
+def load_recordings(project_config='undefined'):
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            print('Project not found.')
+            exit(0)
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # grabbing the locations of the recording folder
+        recordings = pconfig['recordings_path']
+
+        return recordings
+    else:
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            print('Project not found.')
+            exit(0)
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+            exit(0)
+
+        # grabbing the locations of the recordings
+        recordings = pconfig['recordings_path']
+
+        return recordings
+
 
 def select_rois(project_config='undefined'):
     cconfig, videos, frames, cameras = load_cameras(project_config)
@@ -465,13 +513,11 @@ def monitor_processes(processes, lookup):
 
 
 
-def record(project_config='undefined'):
+def record(project_config='undefined', safe=True):
     cconfig, videos, frames, cameras = load_cameras(project_config)
 
     # Create a simple pop-up to select which cameras to record from
     cams = [cam['name'] for cam in cconfig['cameras']]
-
-    cams = ['cam1','cam2']
 
     root = tk.Tk()
     app = ChecklistBox(root, cams)
@@ -479,11 +525,8 @@ def record(project_config='undefined'):
 
     selected = app.getCheckedItems()
 
-    # go ahead and get the real cameras
-    cams = [cam for cam in cconfig['cameras'] if cam['name'] in selected]
-
     # Make a little pop-up to ask for the recording details
-    model_names = ['model 1', 'model 2']
+    model_names = ['']
     cam_names = selected 
 
     root = tk.Tk()
@@ -493,14 +536,76 @@ def record(project_config='undefined'):
     # getting the settings dictionary
     values = app.getVals()
 
-    # make the recording record 
-    pids = ['10','11']
-    lookup = {
-        '10':'cam1',
-        '11':'cam2'
-    }
-    monitor_processes(pids, lookup)
 
+    # assume that the dictionary is {'model':['cam1','cam2']}, None is a valid model
+
+    # if safe, let's call the select rois function, just so they know what they're getting and to see if we can access the cameras
+    if safe:
+        try:
+            select_rois(project_config)
+        except:
+            print("Could not access the cameras...")
+            exit(0)
+
+    # Ok, let's go ahead and get those camera settings again
+    cconfig, videos, frames, cameras = load_cameras(project_config)
+
+    # limit this to only selected cams
+    camera_hard_settings = [cam for cam in cconfig['cameras'] if cam['name'] in selected]
+
+    # build out the recording folder
+    recordings = load_recordings(project_config)
+    recording_name = 'recording_'+datetime.utcnow().strftime('%Y%m%d%H%M%S')
+
+    print(f"Opening a recording folder called {recording_name}")
+    recording_folder = os.path.join(recordings, recording_name)
+    
+    # check for duplicates
+    if os.path.exists(recording_folder):
+        print('Somehow the recording name is a duplicate. Weird, try again.')
+        exit(0)
+
+    os.mkdir(recording_folder)
+
+    # Ok, let's make the recording config file
+    config_file = os.path.join(recording_folder, 'details.yaml')
+
+    config = {
+        'start_date':'',
+        'start_time':'',
+        'cameras_per_model':{},
+        'cameras_time':[],
+        'cameras':[]
+    }
+
+    cameras = camera_hard_settings
+
+    t = time.localtime()
+
+    # this is the superior date structure by the way
+    current_date = time.strftime("%Y-%m-%d", t)
+
+    current_time = time.strftime("%H:%M:%S", t)
+
+    start_date = current_date
+    start_time = current_time
+
+    print(start_date)
+    print(start_time)
+
+    config['start_date'] = start_date
+    config['start_time'] = start_time
+
+    # start the recordings, if something fails, erase all of this scorched earth style
+
+    # assuming that the processes actually started and are working, dump the contents of the config file into the recording folder
+    # careful, any fault here would destroy child processes
+    try:
+        with open(config_file, 'w+') as file:
+            yaml.dump(config, file, allow_unicode=True)
+    except:
+        print('Failed to dump the camera settings.')
+        exit(0)
 
 
 def main():
