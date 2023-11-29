@@ -170,6 +170,9 @@ class RecordingDetails:
         self.root = root
         self.root.title('Recording Details')
 
+        self.cam_names = cam_names
+        self.model_names = model_names
+
         # adding an option for setting all of the cameras to the same values
         cam_names.append('all')
         
@@ -243,14 +246,16 @@ class RecordingDetails:
             return False
 
     def getVals(self):
-        outputDict = self.settings.copy()
-        for cam in outputDict.keys():
-            l = outputDict[cam]
-            for i in l:
-                for key in i.keys():
-                    i[key] = i[key].get()
+        outputDict = {}
+
+        for key in self.settings.keys():
+            outputDict[key] = [{'Time': self.settings[key][0]['Time'].get()},{'Segment': self.settings[key][1]['Segment'].get()}]
+            for i,x in enumerate(self.model_names):
+                outputDict[key].append({x: self.settings[key][i+2][x].get()})
+
         if self.validateVals(outputDict):
             return outputDict
+        return None
         
     def kill_if_done(self):
         if self.getVals()!=None:
