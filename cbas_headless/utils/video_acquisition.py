@@ -184,7 +184,7 @@ class RecordingDetails:
         for i in cam_names:
             self.settings[i] = [{'Time': tk.StringVar(value=1)},{'Segment': tk.StringVar(value=30)}]
             for x in model_names:
-                self.settings[i].append({x: tk.BooleanVar(value=True)})
+                self.settings[i].append({x: tk.BooleanVar(value=False)})
 
         # force the number of columns to be odd
         if numcols%2==0:
@@ -461,7 +461,26 @@ def monitor_processes(processes, lookup):
     #for process in processes:
     #    process.join()
 
+def buildModelDict(model_names, values):
+    modelDict = {key: [] for key in model_names}
+    modelDict[None] = []
+    
 
+
+    for key, val in values.items():
+        noneFlag = False
+        for dict in val:
+            for name in model_names:
+                if name in dict:
+                    if dict[name] is True:
+                        noneFlag = True
+                        modelDict[name].append(key)
+        if not noneFlag:
+            modelDict[None].append(key)
+
+    
+    modelDict[None].remove('all')
+    return modelDict
 
 
 
@@ -492,6 +511,8 @@ def record(project_config='undefined'):
 
     # getting the settings dictionary
     values = app.getVals()
+    modelDict = buildModelDict(model_names, values)
+
 
     # make the recording record 
     pids = ['10','11']
