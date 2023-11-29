@@ -212,22 +212,20 @@ class RecordingDetails:
             lb = tk.Label(self.content, text=cam)
             lb.grid(column=0, row=i+1)
 
-        for x in range(1, len(cam_names)+1):
-            if x!=len(cam_names)+1:
-                cam = cam_names[x-1]
-            cam = 'all'
-            
+        for x in range(1, len(cam_names) + 1):
+            cam = cam_names[x - 1]  # Correctly assign the camera name
+
             te = tk.Entry(self.content, textvariable=self.settings[cam][0]['Time'])
             te.grid(column=1, row=x)
             se = tk.Entry(self.content, textvariable=self.settings[cam][1]['Segment'])
             se.grid(column=2, row=x)
 
-
             for y, name in enumerate(model_names):
-                mdn = Checkbutton(self.content, var=self.settings[cam][y+2][name], onvalue=True, offvalue=False)
-                mdn.grid(column=y+3, row=x)
+                mdn = Checkbutton(self.content, var=self.settings[cam][y + 2][name], onvalue=True, offvalue=False)
+                mdn.grid(column=y + 3, row=x)
 
 
+        
         self.content.pack(pady=(20,30)) 
 
         self.submit_button = Button(root, text="Submit", command=self.kill_if_done)
