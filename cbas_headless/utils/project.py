@@ -587,11 +587,14 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         if safe:
             # check if the path exists
             if not os.path.exists(model_path):
-                raise Exception('Path does not exists.')
+                raise Exception('Path does not exist.')
 
             # split based on type
             if type == 'deepethogram':
                 print('Processing deepethogram model.')
+
+
+                
             elif type == 'deeplabcut':
                 print('Processing deeplabcut model.')
             
@@ -647,7 +650,7 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         if safe:
             # check if the path exists
             if not os.path.exists(model_path):
-                raise Exception('Path does not exists.')
+                raise Exception('Path does not exist.')
 
             # split based on type
             if type == 'deepethogram':

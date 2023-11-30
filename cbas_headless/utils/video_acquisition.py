@@ -795,11 +795,10 @@ def record(project_config='undefined', safe=True):
         for key in modelDict.keys():
             # determine the type of orchestrator to make
             if key==None:
-                print(config_file)
                 process = Process(target=orchestrate.basic_orchestrator, args=(config_file,))
                 process.start()
                 orchestrators.append(process)
-                #processes.append((process, process.pid, str(key)))
+
 
     except:
 
