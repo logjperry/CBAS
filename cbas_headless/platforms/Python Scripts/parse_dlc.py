@@ -25,21 +25,18 @@ def splineFilter(df, points):
 #df.insert(indx, (point, 'velocity'), newCol)
 def velocity(df, points):
     for point in points:
-        uniquePart = df.loc[:,point]
-        df[(point, 'velocity')] = np.sqrt((uniquePart['x'].diff()**2) + (uniquePart['y'].diff()**2))
+        df[(point, 'velocity')] = np.sqrt((df[(point, 'x')].diff()**2) + (df[(point, 'y')].diff()**2))
         df[(point, 'vel likelihood')] = (df[(point, 'likelihood')] + df[(point, 'likelihood')].shift(1)) / 2
 
 #Build dict of distances from body parts to fixed points
 def distances(df, parts, fixedPoints):
     pointsDict = {}
     for point in fixedPoints:
-        uniquePoint = df.loc[:,point]
         pointsDict[point] = {}
         for part in parts:
-            uniquePart = df.loc[:,part]
             pointsDict[point][part] =  []
-            pointsDict[point][part].append(np.sqrt((uniquePoint['x'] - uniquePart['x'])**2 + (uniquePoint['y'] - uniquePoint['y'])**2))
-            pointsDict[point][part].append(uniquePart['likelihood'] * uniquePoint['likelihood'])
+            pointsDict[point][part].append(np.sqrt((df[(point, 'x')] - df[(part, 'x')])**2 + (df[(point, 'x')] - df[(part, 'y')])**2))
+            pointsDict[point][part].append(df[(part, 'likelihood')] * df[(point, 'likelihood')])
     return pointsDict
 
 #Builds dictionary similar to distances func but calculates speed of each part to or from
@@ -78,6 +75,8 @@ def dfToDict(df, points):
 ##################################################################
 ############################### MAIN #############################
 def main():
+
+    #Filename needs standardization or user input
     df = pd.read_csv('dlc_test_file.csv', header=[1,2])
     df.drop(('bodyparts', 'coords'), axis= 1, inplace=True)
     
