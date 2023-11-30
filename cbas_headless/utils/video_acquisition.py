@@ -9,6 +9,7 @@ from sys import exit
 import psutil
 from datetime import datetime
 import time
+import signal
 
 class ImageCropTool:
     def __init__(self, root, images, cconfig):
@@ -18,11 +19,15 @@ class ImageCropTool:
 
         self.canvas = tk.Canvas(self.root)
         self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.terminated = False
 
 
         # Bind mouse events for drawing the rectangle
         self.canvas.bind("<Button-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
+
+        # Exit gracefully
+        root.protocol("WM_DELETE_WINDOW", self.close_gracefully)
 
         # Button for saving the region of interest (ROI)
         self.crop_button = Button(root, text="Save ROI", command=self.crop_image)
@@ -42,7 +47,9 @@ class ImageCropTool:
         # Process images for cropping
         self.getImageCropRegions(images)
 
-
+    def close_gracefully(self):
+        self.terminated = True
+        self.root.destroy()
 
     def resize_image(self, image, width, height):
         # Resize image maintaining aspect ratio
@@ -141,6 +148,10 @@ class ChecklistBox:
 
         header = tk.Label(root, text="Record From:", font=('Arial',9,'bold','underline'))
         header.pack(side='top',pady=5)
+        self.terminated = False
+
+        # Exit gracefully
+        root.protocol("WM_DELETE_WINDOW", self.close_gracefully)
 
         self.vars = []
         for choice in choices:
@@ -163,6 +174,9 @@ class ChecklistBox:
             if value:
                 values.append(value)
         return values
+    def close_gracefully(self):
+        self.terminated = True
+        self.root.destroy()
     
     
 class RecordingDetails:
@@ -174,6 +188,10 @@ class RecordingDetails:
 
         self.cam_names = cam_names
         self.model_names = model_names
+        self.terminated = False
+        
+        # Exit gracefully
+        root.protocol("WM_DELETE_WINDOW", self.close_gracefully)
 
         
         self.content = tk.Frame(root)
@@ -258,21 +276,71 @@ class RecordingDetails:
     def kill_if_done(self):
         if self.getVals()!=None:
             self.root.destroy()
+    def close_gracefully(self):
+        self.terminated = True
+        self.root.destroy()
             
                 
 
 
 class ProcessMonitor:
-    def __init__(self, root, pids, lookup):
+    def __init__(self, root, pids, lookupCam, lookupProcess, recordingConfig):
         self.root = root
         self.root.title('Process Monitor')
+        self.pids = pids 
+        self.lookupCam = lookupCam
+        self.lookupProcess = lookupProcess
+        self.recordingConfig = recordingConfig
+        self.content = None
+        self.terminated = False
+        
+        # Exit gracefully
+        root.protocol("WM_DELETE_WINDOW", self.close_gracefully)
+
+        self.update()
+
+    
+    def terminate(self, process):
+        try:
+            pid = process.pid
+            process.stdin.write(b'q')
+            process.stdin.flush()
+
+            camera_killed = self.lookupCam[pid]
+
+            # update the camera config
+            with open(self.recordingConfig, 'r') as file:
+                rconfig = yaml.safe_load(file)
+            
+            t = time.localtime()
+
+            current_time = time.strftime("%H:%M:%S", t)
+
+            rconfig['cameras_time'][camera_killed]['end_time'] = current_time
+
+            with open(self.recordingConfig, 'w+') as file:
+                yaml.dump(rconfig, file, allow_unicode=True)
+
+
+
+        except Exception as e:
+            print(f"Error sending quit command to ffmpeg: {e}")
+    
+    def update(self):
+
+        if self.content!=None:
+            self.content.destroy()
+            self.close.destroy()
 
         colors = []
 
-        for pid in pids:
+        AllDead = True
+
+        for pid in self.pids:
             alive = False
             if psutil.pid_exists(int(pid)):
                 colors.append('green yellow')
+                AllDead = False
                 alive = True
             else:
                 colors.append('firebrick1')
@@ -282,35 +350,46 @@ class ProcessMonitor:
                 print('checking for overflowing files')
             
 
+        if AllDead:
+            self.root.destroy()
+            raise Exception('User terminated all processes.')
         
-        content = tk.Frame(root)
-        numcols = 2
-        numrows = (len(pids)+2)
-        content.grid_rowconfigure(numrows)
-        content.grid_columnconfigure(numcols)
+        self.content = tk.Frame(self.root)
+        numcols = 3
+        numrows = (len(self.pids)+2)
+        self.content.grid_rowconfigure(numrows)
+        self.content.grid_columnconfigure(numcols)
 
-        cameras = tk.Label(content, text='Camera', font=('Arial',9,'bold','underline'))
-        state = tk.Label(content, text="State", font=('Arial',9,'bold','underline'))
+        cameras = tk.Label(self.content, text='Camera', font=('Arial',9,'bold','underline'))
+        state = tk.Label(self.content, text="State", font=('Arial',9,'bold','underline'))
 
         cameras.grid(column=0,row=0,pady=5)
         state.grid(column=1,row=0,pady=5)
         
 
-        for i,pid in enumerate(pids):
-            cam = lookup[str(pid)]
-            name = tk.Label(content, text=cam)
-            color = tk.Label(content, text="", bg=colors[i], width=3)
+        for i,pid in enumerate(self.pids):
+            cam = self.lookupCam[pid]
+            name = tk.Label(self.content, text=cam)
+            color = tk.Label(self.content, text="", bg=colors[i], width=3, borderwidth=3, relief="flat")
+            terminate = tk.Button(self.content, text="Terminate", command=lambda: self.terminate(self.lookupProcess[pid]))
 
             name.grid(column=0,row=(i+2),pady=5)
             color.grid(column=1,row=(i+2),pady=5)
+            terminate.grid(column=2,row=(i+2),pady=5)
 
-        content.pack(side="top", pady=(10,5))
+        self.content.pack(side="top", pady=(10,5))
 
             
-
-
-        self.close = Button(root, text="Close", command=self.root.destroy)
+        self.close = Button(self.root, text="Close", command=self.root.destroy)
         self.close.pack(pady=(20,30))
+
+
+        # wait some time and then check all the processes again
+        self.root.after(2000, self.update)
+    def close_gracefully(self):
+        self.terminated = True
+        self.root.destroy()
+
 
 
 
@@ -319,11 +398,20 @@ def generate_image(rtsp_url, frame_location):
     command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -vf \"select=eq(n\,34)\" -vframes 1 -y {frame_location}"
     subprocess.call(command, shell=True)
 
+
 # Create an FFMPEG process for recording the stream
 def record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy, scale, framerate):
-    print(f"{video_dir}/recording_{name}_%05d.mp4")
-    command = ['ffmpeg', '-rtsp_transport', 'tcp', '-i', str(rtsp_url), '-r', str(framerate), '-t', str(time), '-filter_complex', f"\"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy}),scale={scale}:{scale}[cropped]\"", '-map', '\"[cropped]\"', '-f', 'segment', '-segment_time', str(seg_time), '-reset_timestamps', '1', '-y', f"{video_dir}/recording_{name}_%05d.mp4"]
-    subprocess.Popen(command)
+    output_path = f"{video_dir}/recording_{name}_%05d.mp4"
+    print(output_path)
+    command = [
+        'ffmpeg', '-rtsp_transport', 'tcp', '-i', str(rtsp_url), 
+        '-r', str(framerate), '-t', str(time), 
+        '-filter_complex', f"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy}),scale={scale}:{scale}[cropped]", 
+        '-map', '[cropped]', '-f', 'segment', '-segment_time', str(seg_time), 
+        '-reset_timestamps', '1', '-y', output_path
+    ]
+    process = subprocess.Popen(command, stdin=subprocess.PIPE)
+    return process
 
 
 def load_cameras(project_config='undefined'):
@@ -337,16 +425,14 @@ def load_cameras(project_config='undefined'):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -358,24 +444,21 @@ def load_cameras(project_config='undefined'):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         return (cconfig, videos, frames, cameras)
     else:
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -387,8 +470,7 @@ def load_cameras(project_config='undefined'):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         return (cconfig, videos, frames, cameras)
 
@@ -403,16 +485,14 @@ def load_recordings(project_config='undefined'):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the recording folder
         recordings = pconfig['recordings_path']
@@ -422,16 +502,14 @@ def load_recordings(project_config='undefined'):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the recordings
         recordings = pconfig['recordings_path']
@@ -460,6 +538,9 @@ def select_rois(project_config='undefined'):
     root.geometry('840x600')
     app = ImageCropTool(root, images, cconfig)
     root.mainloop()
+
+    if app.terminated:
+        raise Exception('User terminated process.')
     
     # generate a 2d array of cams x regions
     values = app.generate_regions()
@@ -467,8 +548,7 @@ def select_rois(project_config='undefined'):
     # check to see if the number values equals the number of cameras
     num_cams = len(cconfig['cameras'])
     if len(values)!=num_cams:
-        print('User aborted roi selection.')
-        exit(0)
+        raise Exception('User aborted roi selection.')
     
 
     # update the roi values
@@ -496,17 +576,6 @@ def select_rois(project_config='undefined'):
     with open(cameras, 'w+') as file:
         yaml.dump(config, file, allow_unicode=True)
 
-def monitor_processes(processes, lookup):
-
-    #pids = [process.pid for process in processes]
-
-    root = tk.Tk()
-    app = ProcessMonitor(root, processes, lookup)
-    root.mainloop()
-
-    # wait for all processes to finish
-    #for process in processes:
-    #    process.join()
 
 def buildModelDict(model_names, values):
     modelDict = {key: [] for key in model_names}
@@ -529,7 +598,7 @@ def buildModelDict(model_names, values):
     return modelDict
 
 def buildCameraDict(camera_names, values):
-    cameraDict = {key: {'recording_length':0,'segment_length':0} for key in camera_names}
+    cameraDict = {key: {'recording_length':0,'segment_length':0,'end_time':None} for key in camera_names}
 
     for key, val in values.items():
         time_len = val[0]['Time']
@@ -550,6 +619,9 @@ def record(project_config='undefined', safe=True):
     root = tk.Tk()
     app = ChecklistBox(root, cams)
     root.mainloop()
+    
+    if app.terminated:
+        raise Exception('Cameras not selected, exiting.')
 
     selected = app.getCheckedItems()
 
@@ -560,6 +632,9 @@ def record(project_config='undefined', safe=True):
     root = tk.Tk()
     app = RecordingDetails(root, cam_names, model_names)
     root.mainloop()
+
+    if app.terminated:
+        raise Exception('Recording details not entered, exiting.')
 
     # getting the settings dictionary
     settings = app.getVals()
@@ -573,8 +648,7 @@ def record(project_config='undefined', safe=True):
         try:
             select_rois(project_config)
         except:
-            print("Could not access the cameras...")
-            exit(0)
+            raise Exception("Process terminated.")
 
     # Ok, let's go ahead and get those camera settings again
     cconfig, videos, frames, cameras = load_cameras(project_config)
@@ -591,8 +665,8 @@ def record(project_config='undefined', safe=True):
     
     # check for duplicates
     if os.path.exists(recording_folder):
-        print('Somehow the recording name is a duplicate. Weird, try again.')
-        exit(0)
+        raise Exception('Somehow the recording name is a duplicate. Weird, try again.')
+        
 
     os.mkdir(recording_folder)
 
@@ -623,9 +697,6 @@ def record(project_config='undefined', safe=True):
     start_date = current_date
     start_time = current_time
 
-    print(start_date)
-    print(start_time)
-
     config['start_date'] = start_date
     config['start_time'] = start_time
 
@@ -646,12 +717,12 @@ def record(project_config='undefined', safe=True):
         rtsp_url = cam['rtsp_url']
         video_dir = cam['video_dir']
 
-        recording_length = 1440*60 * config['cameras_time'][name]['recording_length']
-        segment_length = 60 * config['cameras_time'][name]['segment_length']
+        recording_length = 1440*60 * int(config['cameras_time'][name]['recording_length'])
+        segment_length = 60 * int(config['cameras_time'][name]['segment_length'])
 
-        process = Process(target=record_stream, args=(rtsp_url, name, video_dir, recording_length, segment_length, cw, ch, cx, cy, scale, framerate))
-        process.start()
+        process = record_stream(rtsp_url, name, video_dir, recording_length, segment_length, cw, ch, cx, cy, scale, framerate)
         processes.append((process, process.pid, name))
+
     
     # assuming that the processes actually started and are working, dump the contents of the config file into the recording folder
     # careful, any fault here would destroy child processes
@@ -661,63 +732,14 @@ def record(project_config='undefined', safe=True):
     except:
         print('Failed to dump the camera settings.')
 
-    # wait for all processes to finish
-    for process in processes:
-        process[0].join()
-
-
-
-def main():
-    processes = []
-
-    print('Please enter the total amount of time of the recording (in days): ')
-    time = float(input())
-    time *= 1440*60
-
-    print('Please enter the segmentation time of the recordings (in minutes): ')
-    seg = int(input())
-    seg *= 60
-
-    images = []
-
-    # create and start a new process for each RTSP IP
-    for i, ip in enumerate(rtsp_ips):
-        # you can modify the filename pattern as per your needs
-        process = Process(target=generate_image, args=(ip, i+1, 'username', 'password'))
-        process.start()
-        processes.append(process)
-        images.append(os.path.join(os.getcwd(),"videos/cam"+str(i+1)+"/frame.jpg"))
-
-    # wait for all processes to finish
-    for process in processes:
-        process.join()
+    pids = [process[1] for process in processes]
+    lookupCam = {process[1]:process[2] for process in processes}
+    lookupProcess = {process[1]:process[0] for process in processes}
 
     root = tk.Tk()
-    root.geometry('800x600')
-    app = ImageCropTool(root, images)
+    app = ProcessMonitor(root, pids, lookupCam, lookupProcess, config_file)
     root.mainloop()
-    
-    
-    values = app.generate_regions()
-    
 
-    # create and start a new process for each RTSP IP
-    for i, ip in enumerate(rtsp_ips):
-        # you can modify the filename pattern as per your needs
-        cw = values[i][0]
-        ch = values[i][1]
-        cx = values[i][2]
-        cy = values[i][3]
-        process = Process(target=record_stream, args=(ip, i+1, 'username', 'password', time, seg, cw, ch, cx, cy))
-        process.start()
-        processes.append(process)
-
-    # wait for all processes to finish
-    for process in processes:
-        process.join()
-
-if __name__ == "__main__":
-    main()
 
 
 
