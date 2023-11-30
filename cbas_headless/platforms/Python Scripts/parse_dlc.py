@@ -12,7 +12,7 @@ def splineFilter(df, points):
         # Interpolate the values and store them back in the DataFrame
         df[(point, 'x')] = cs_x(x)
         df[(point, 'y')] = cs_y(x)
-    return
+    
 
 
 #add column with velocity of prev to current frame
@@ -27,6 +27,7 @@ def velocity(df, points):
     for point in points:
         df[(point, 'velocity')] = np.sqrt((df[(point, 'x')].diff()**2) + (df[(point, 'y')].diff()**2))
         df[(point, 'vel likelihood')] = (df[(point, 'likelihood')] + df[(point, 'likelihood')].shift(1)) / 2
+    df.fillna(0, inplace=True)
 
 #Build dict of distances from body parts to fixed points
 def distances(df, parts, fixedPoints):
@@ -91,18 +92,14 @@ def main():
     fixedPoints = ['nest', 'spout', 'food_hopper']
     bodyParts = ['nose', 'hand_left', 'hand_right', 'back', 'base_tail']
     
-    
 
-    velocity(df, points)
+    velocity(df, bodyParts)
     
     distDict = distances(df, bodyParts, fixedPoints)
     speedDict = speed(distDict, 0.1)
     dfDict = dfToDict(df, points)
     
-    
-    
 
-    
 
 if __name__ == "__main__":
     main()
