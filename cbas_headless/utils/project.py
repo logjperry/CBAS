@@ -51,8 +51,7 @@ def create_project(project_name):
     project_config = os.path.join(user_dir, 'project_config.yaml')
 
     if os.path.exists(project_config):
-        print('Cannot create a project within the main directory of another project. Move to another directory and try again.')
-        exit(0)
+        raise Exception('Cannot create a project within the main directory of another project. Move to another directory and try again.')
     else:
         project_config = os.path.join(project, 'project_config.yaml')
 
@@ -169,16 +168,14 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -190,8 +187,7 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         # check to see if the rtsp url is functional
         if safe:
@@ -204,11 +200,7 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
             if os.path.exists(test_frame):
                 print('RTSP functional!')
             else:
-                print()
-                print('Either the RTSP url is wrong or ffmpeg is not installed properly. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
-                print('You may need to include a username and password in your RTSP url if you see an authorization error.')
-                print()
-                exit(0)
+                raise Exception('Either the RTSP url is wrong or ffmpeg is not installed properly. You may need to include a username and password in your RTSP url if you see an authorization error. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
         
         # assuming that the rtsp url is functional, make a dedicated location for storing videos and setup the config
         camera_list = cconfig['cameras']
@@ -226,11 +218,9 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
         # first check to see no duplicates exist
         for cam in camera_list:
             if cam['name'] == name:
-                print('Found a camera with this name already, please use a different name.')
-                exit(0)
+                raise Exception('Found a camera with this name already, please use a different name.')
             elif cam['rtsp_url'] == rtsp_url:
-                print('Found an existing camera with this same rtsp url, please use a different url.')
-                exit(0)
+                raise Exception('Found an existing camera with this same rtsp url, please use a different url.')
         
         # great, there are no conflicts. go ahead and make a directory for future videos and a camera config for this new camera
         video_folder = os.path.join(videos,name)
@@ -278,16 +268,14 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -299,8 +287,7 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         # check to see if the rtsp url is functional
         if safe:
@@ -313,8 +300,7 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
             if os.path.exists(test_frame):
                 print('RTSP functional!')
             else:
-                print('Either the RTSP url is wrong or ffmpeg is not installed properly. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
-                exit(0)
+                raise Exception('Either the RTSP url is wrong or ffmpeg is not installed properly. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
 
         # check to see if the rtsp url is functional
         if safe:
@@ -327,11 +313,8 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
             if os.path.exists(test_frame):
                 print('RTSP functional!')
             else:
-                print()
-                print('Either the RTSP url is wrong or ffmpeg is not installed properly. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
-                print('You may need to include a username and password in your RTSP url if you see an authorization error.')
-                print()
-                exit(0)
+                raise Exception('Either the RTSP url is wrong or ffmpeg is not installed properly. You may need to include a username and password in your RTSP url if you see an authorization error. You may run this function again with safe=False to generate the camera regardless of image acquisition.')
+        
         
         # assuming that the rtsp url is functional, make a dedicated location for storing videos and setup the config
         camera_list = cconfig['cameras']
@@ -349,11 +332,9 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
         # first check to see no duplicates exist
         for cam in camera_list:
             if cam['name'] == name:
-                print('Found a camera with this name already, please use a different name.')
-                exit(0)
+                raise Exception('Found a camera with this name already, please use a different name.')
             elif cam['rtsp_url'] == rtsp_url:
-                print('Found an existing camera with this same rtsp url, please use a different url.')
-                exit(0)
+                raise Exception('Found an existing camera with this same rtsp url, please use a different url.')
         
         # great, there are no conflicts. go ahead and make a directory for future videos and a camera config for this new camera
         video_folder = os.path.join(videos,name)
@@ -410,16 +391,14 @@ def remove_camera(name, project_config='undefined'):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -429,8 +408,7 @@ def remove_camera(name, project_config='undefined'):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
         
         # just remove everything related to the named camera
         camera_list = cconfig['cameras']
@@ -485,7 +463,7 @@ def remove_camera(name, project_config='undefined'):
             yaml.dump(config, file, allow_unicode=True)
                 
         if not found:
-            print('Could not remove the camera from the list because it could not be found.')
+            raise Exception('Could not remove the camera from the list because it could not be found.')
         
         
         
@@ -493,16 +471,14 @@ def remove_camera(name, project_config='undefined'):
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the camera
         cameras = pconfig['cameras_path']
@@ -512,8 +488,7 @@ def remove_camera(name, project_config='undefined'):
             with open(cameras, 'r') as file:
                 cconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         # just remove everything related to the named camera
         camera_list = cconfig['cameras']
@@ -568,7 +543,7 @@ def remove_camera(name, project_config='undefined'):
             yaml.dump(config, file, allow_unicode=True)
                 
         if not found:
-            print('Could not remove the camera from the list because it could not be found.')
+            raise Exception('Could not remove the camera from the list because it could not be found.')
 
         
         
@@ -577,8 +552,7 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
     valid_types = ['deepethogram','deeplabcut']
 
     if type=='undefined' or type not in valid_types:
-        print(f"Please include a valid model type. Currently available types are {str(valid_types)}.")
-        exit(0)
+        raise Exception(f"Please include a valid model type. Currently available types are {str(valid_types)}.")
     
     if project_config=='undefined':
         # assume that the user is located in an active project
@@ -590,16 +564,14 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the models yaml file
         models = pconfig['models_path']
@@ -609,15 +581,13 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
             with open(models, 'r') as file:
                 mconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         # check to see if the model is functional
         if safe:
             # check if the path exists
             if not os.path.exists(model_path):
-                print('Path does not exists.')
-                exit(0)
+                raise Exception('Path does not exists.')
 
             # split based on type
             if type == 'deepethogram':
@@ -634,8 +604,7 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         # first check to see no duplicates exist
         for model in model_list:
             if model['path'] == model_path:
-                print('Found a model with this path already, please use a different path.')
-                exit(0)
+                raise Exception('Found a model with this path already, please use a different path.')
         
         # great, there are no conflicts. go ahead and update the models config
         model_config = {
@@ -655,16 +624,14 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         if os.path.exists(project_config):
             print('Project found.')
         else:
-            print('Project not found.')
-            exit(0)
+            raise Exception('Project not found.')
         
         # extract the project_config file
         try:
             with open(project_config, 'r') as file:
                 pconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the models yaml file
         models = pconfig['models_path']
@@ -674,15 +641,13 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
             with open(models, 'r') as file:
                 mconfig = yaml.safe_load(file)
         except:
-            print('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
-            exit(0)
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
 
         # check to see if the model is functional
         if safe:
             # check if the path exists
             if not os.path.exists(model_path):
-                print('Path does not exists.')
-                exit(0)
+                raise Exception('Path does not exists.')
 
             # split based on type
             if type == 'deepethogram':
@@ -699,8 +664,7 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
         # first check to see no duplicates exist
         for model in model_list:
             if model['path'] == model_path:
-                print('Found a model with this path already, please use a different path.')
-                exit(0)
+                raise Exception('Found a model with this path already, please use a different path.')
         
         # great, there are no conflicts. go ahead and update the models config
         model_config = {
