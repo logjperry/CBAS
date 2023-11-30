@@ -80,6 +80,8 @@ def main():
     #Filename needs standardization or user input
     df = pd.read_csv('dlc_test_file.csv', header=[1,2])
     df.drop(('bodyparts', 'coords'), axis= 1, inplace=True)
+    smallDf = df.iloc[::5].copy()
+    smallDf.interpolate(method='spline', order=3, inplace=True)
     
     points = []
     for col in df.columns:
@@ -87,6 +89,11 @@ def main():
             points.append(col[0])
 
     splineFilter(df, points)
+
+    print(smallDf.head())
+    splineFilter(smallDf, points)
+
+    print(smallDf.head())
 
     #These need to be user entered and must match all the columns in the CSV exactly!
     fixedPoints = ['nest', 'spout', 'food_hopper']
