@@ -5,8 +5,13 @@ from scipy.interpolate import CubicSpline
 def splineFilter(df, points):
     x = df.index.tolist()
     for point in points:
-        df[(point, 'x')] = CubicSpline(x, df[(point, 'x')].values.tolist())
-        df[(point, 'y')] = CubicSpline(x, df[(point, 'y')].values.tolist())
+        # Create a CubicSpline object for x and y columns
+        cs_x = CubicSpline(x, df[(point, 'x')].values)
+        cs_y = CubicSpline(x, df[(point, 'y')].values)
+        
+        # Interpolate the values and store them back in the DataFrame
+        df[(point, 'x')] = cs_x(x)
+        df[(point, 'y')] = cs_y(x)
     return
 
 
@@ -81,7 +86,7 @@ def main():
         if col[0] not in points:
             points.append(col[0])
 
-    #splineFilter(df, points)
+    splineFilter(df, points)
 
     #These need to be user entered and must match all the columns in the CSV exactly!
     fixedPoints = ['nest', 'spout', 'food_hopper']
