@@ -10,6 +10,12 @@ import psutil
 from datetime import datetime
 import time
 import signal
+import glob
+import orchestrate
+
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
 
 class ImageCropTool:
     def __init__(self, root, images, cconfig):
@@ -300,9 +306,9 @@ class ProcessMonitor:
         self.update()
 
     
-    def terminate(self, process):
+    def terminate(self, pid):
         try:
-            pid = process.pid
+            process = self.lookupProcess[pid]
             process.stdin.write(b'q')
             process.stdin.flush()
 
@@ -331,6 +337,7 @@ class ProcessMonitor:
         if self.content!=None:
             self.content.destroy()
             self.close.destroy()
+            self.warn.destroy()
 
         colors = []
 
@@ -371,7 +378,7 @@ class ProcessMonitor:
             cam = self.lookupCam[pid]
             name = tk.Label(self.content, text=cam)
             color = tk.Label(self.content, text="", bg=colors[i], width=3, borderwidth=3, relief="flat")
-            terminate = tk.Button(self.content, text="Terminate", command=lambda: self.terminate(self.lookupProcess[pid]))
+            terminate = tk.Button(self.content, text="Terminate", command=lambda: self.terminate(pid))
 
             name.grid(column=0,row=(i+2),pady=5)
             color.grid(column=1,row=(i+2),pady=5)
@@ -380,7 +387,11 @@ class ProcessMonitor:
         self.content.pack(side="top", pady=(10,5))
 
             
-        self.close = Button(self.root, text="Close", command=self.root.destroy)
+        self.warn = tk.Label(self.root, text="Warning, closing window will \nterminate the video acquisition process.", fg='tomato', padx=5)
+        self.warn.pack(pady=(5,5))
+
+
+        self.close = Button(self.root, text="TERMINATE ALL", command=self.root.destroy)
         self.close.pack(pady=(20,30))
 
 
@@ -610,6 +621,30 @@ def buildCameraDict(camera_names, values):
 
 
 
+
+class Watcher(FileSystemEventHandler):
+    def __init__(self, recordingConfig):
+        self.recordingConfig = recordingConfig
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        print(f'New file created: {event.src_path}')
+
+        pathname = event.src_path
+
+        camera_name = os.path.split(os.path.split(pathname)[0])[1]
+        # update the camera config
+        with open(self.recordingConfig, 'r') as file:
+            rconfig = yaml.safe_load(file)
+    
+        rconfig['cameras_files'][camera_name].append(os.path.split(pathname)[1])
+
+        with open(self.recordingConfig, 'w+') as file:
+            yaml.dump(rconfig, file, allow_unicode=True)
+
+
+
+
 def record(project_config='undefined', safe=True):
     cconfig, videos, frames, cameras = load_cameras(project_config)
 
@@ -678,14 +713,24 @@ def record(project_config='undefined', safe=True):
         'start_time':'',
         'cameras_per_model':{},
         'cameras_time':[],
+        'cameras_files':[],
         'cameras':[]
     }
 
     config['cameras_per_model'] = modelDict
     config['cameras_time'] = cameraDict
     config['cameras'] = camera_hard_settings
+    config['cameras_files'] = {c:[] for c in selected}
 
     cameras = camera_hard_settings
+
+    # clear the old video files before starting
+    for i, cam in enumerate(cameras):
+        video_dir = cam['video_dir']
+        files = glob.glob(os.path.join(video_dir, '*'))
+        for file in files:
+            if os.path.isfile(file):
+                os.remove(file)
 
     t = time.localtime()
 
@@ -702,6 +747,8 @@ def record(project_config='undefined', safe=True):
 
     # start the recordings, if something fails, erase all of this scorched earth style
     processes = []
+    watchdogs = []
+    orchestrators = []
 
     for i, cam in enumerate(cameras):
 
@@ -720,8 +767,19 @@ def record(project_config='undefined', safe=True):
         recording_length = 1440*60 * int(config['cameras_time'][name]['recording_length'])
         segment_length = 60 * int(config['cameras_time'][name]['segment_length'])
 
+        path = video_dir 
+        event_handler = Watcher(config_file)
+        observer = Observer()
+
+        observer.schedule(event_handler, path, recursive=False)
+        observer.start()
+
         process = record_stream(rtsp_url, name, video_dir, recording_length, segment_length, cw, ch, cx, cy, scale, framerate)
         processes.append((process, process.pid, name))
+        
+
+        watchdogs.append(observer)
+
 
     
     # assuming that the processes actually started and are working, dump the contents of the config file into the recording folder
@@ -732,6 +790,22 @@ def record(project_config='undefined', safe=True):
     except:
         print('Failed to dump the camera settings.')
 
+    # start up the models. This has the highest probablitity of breaking
+    try:
+        for key in modelDict.keys():
+            # determine the type of orchestrator to make
+            if key==None:
+                print(config_file)
+                process = Process(target=orchestrate.basic_orchestrator, args=(config_file,))
+                process.start()
+                orchestrators.append(process)
+                #processes.append((process, process.pid, str(key)))
+
+    except:
+
+        raise Exception('Error loading a model. Aborting!')
+    
+
     pids = [process[1] for process in processes]
     lookupCam = {process[1]:process[2] for process in processes}
     lookupProcess = {process[1]:process[0] for process in processes}
@@ -739,6 +813,22 @@ def record(project_config='undefined', safe=True):
     root = tk.Tk()
     app = ProcessMonitor(root, pids, lookupCam, lookupProcess, config_file)
     root.mainloop()
+
+    for pid in pids:
+        app.terminate(pid)
+
+    # we have reached the end of the recording, hopefully. time to clean up processes
+
+    for wd in watchdogs:
+        wd.stop()
+        wd.join()
+    
+
+    for process in orchestrators:
+        process.terminate()
+        process.join()
+
+
 
 
 
