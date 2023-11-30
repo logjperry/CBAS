@@ -175,8 +175,6 @@ class RecordingDetails:
         self.cam_names = cam_names
         self.model_names = model_names
 
-        # adding an option for setting all of the cameras to the same values
-        cam_names.append('all')
         
         self.content = tk.Frame(root)
         numcols = (len(model_names)+3)
@@ -322,9 +320,10 @@ def generate_image(rtsp_url, frame_location):
     subprocess.call(command, shell=True)
 
 # Create an FFMPEG process for recording the stream
-def record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy):
-    command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -r 10 -t {time} -filter_complex \"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy}),scale=256:256[cropped]\" -map \"[cropped]\" -f segment -segment_time {seg_time} -reset_timestamps 1 -y {video_dir}/recording_{name}_%05d.mp4"
-    subprocess.call(command, shell=True)
+def record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy, scale, framerate):
+    print(f"{video_dir}/recording_{name}_%05d.mp4")
+    command = ['ffmpeg', '-rtsp_transport', 'tcp', '-i', str(rtsp_url), '-r', str(framerate), '-t', str(time), '-filter_complex', f"\"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy}),scale={scale}:{scale}[cropped]\"", '-map', '\"[cropped]\"', '-f', 'segment', '-segment_time', str(seg_time), '-reset_timestamps', '1', '-y', f"{video_dir}/recording_{name}_%05d.mp4"]
+    subprocess.Popen(command)
 
 
 def load_cameras(project_config='undefined'):
@@ -526,16 +525,17 @@ def buildModelDict(model_names, values):
         if not noneFlag:
             modelDict[None].append(key)
 
-    
-    modelDict[None].remove('all')
+
     return modelDict
 
 def buildCameraDict(camera_names, values):
     cameraDict = {key: {'recording_length':0,'segment_length':0} for key in camera_names}
 
     for key, val in values.items():
-        print(key)
-        print(val)
+        time_len = val[0]['Time']
+        seg_len = val[1]['Segment']
+        cameraDict[key]['recording_length'] = time_len
+        cameraDict[key]['segment_length'] = seg_len
 
     return cameraDict
 
@@ -554,7 +554,7 @@ def record(project_config='undefined', safe=True):
     selected = app.getCheckedItems()
 
     # Make a little pop-up to ask for the recording details
-    model_names = ['']
+    model_names = []
     cam_names = selected 
 
     root = tk.Tk()
@@ -607,6 +607,10 @@ def record(project_config='undefined', safe=True):
         'cameras':[]
     }
 
+    config['cameras_per_model'] = modelDict
+    config['cameras_time'] = cameraDict
+    config['cameras'] = camera_hard_settings
+
     cameras = camera_hard_settings
 
     t = time.localtime()
@@ -626,18 +630,29 @@ def record(project_config='undefined', safe=True):
     config['start_time'] = start_time
 
     # start the recordings, if something fails, erase all of this scorched earth style
+    processes = []
 
-    # create and start a new process for each RTSP IP
-    # for i, ip in enumerate(rtsp_ips):
-    #     # you can modify the filename pattern as per your needs
-    #     cw = values[i][0]
-    #     ch = values[i][1]
-    #     cx = values[i][2]
-    #     cy = values[i][3]
-    #     process = Process(target=record_stream, args=(ip, i+1, 'username', 'password', time, seg, cw, ch, cx, cy))
-    #     process.start()
-    #     processes.append(process)
+    for i, cam in enumerate(cameras):
 
+        # record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy, scale, framerate)
+        
+        name = cam['name']
+        framerate = cconfig['framerate']
+        scale = cconfig['scale']
+        cw = cam['width']
+        ch = cam['height']
+        cx = cam['x']
+        cy = cam['y']
+        rtsp_url = cam['rtsp_url']
+        video_dir = cam['video_dir']
+
+        recording_length = 1440*60 * config['cameras_time'][name]['recording_length']
+        segment_length = 60 * config['cameras_time'][name]['segment_length']
+
+        process = Process(target=record_stream, args=(rtsp_url, name, video_dir, recording_length, segment_length, cw, ch, cx, cy, scale, framerate))
+        process.start()
+        processes.append((process, process.pid, name))
+    
     # assuming that the processes actually started and are working, dump the contents of the config file into the recording folder
     # careful, any fault here would destroy child processes
     try:
@@ -645,7 +660,11 @@ def record(project_config='undefined', safe=True):
             yaml.dump(config, file, allow_unicode=True)
     except:
         print('Failed to dump the camera settings.')
-        exit(0)
+
+    # wait for all processes to finish
+    for process in processes:
+        process[0].join()
+
 
 
 def main():

@@ -1,0 +1,19 @@
+cameras:
+- height: 0.6844444444444444
+  name: cam1
+  rtsp_url: rtsp://admin:password@192.168.1.123:8554/profile0
+  video_dir: C:\Users\Jones-Lab\Documents\GitHub\CBAS\cbas_headless\test\core\videos\cam1
+  width: 0.53625
+  x: 0.24
+  y: 0.2511111111111111
+cameras_per_model:
+  ? ''
+  : []
+  null:
+  - cam1
+cameras_time:
+  cam1:
+    recording_length: '1'
+    segment_length: '30'
+start_date: '2023-11-29'
+start_time: '16:45:18'
