@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline
 
+#Shouldnt be needed anymore but not ready to delete
 def splineFilter(df, points):
     x = df.index.tolist()
     for point in points:
@@ -81,19 +82,31 @@ def main():
     df = pd.read_csv('dlc_test_file.csv', header=[1,2])
     df.drop(('bodyparts', 'coords'), axis= 1, inplace=True)
     smallDf = df.iloc[::5].copy()
-    smallDf.interpolate(method='spline', order=3, inplace=True)
+    # Create a new index with an increment of 1
+    new_index = range(df.index.min(), df.index.max() + 1)
+
+    # Reindex the DataFrame with the new index
+    smallDf = smallDf.reindex(new_index)
     
     points = []
     for col in df.columns:
         if col[0] not in points:
             points.append(col[0])
 
-    splineFilter(df, points)
+    for point in points:
+        smallDf[(point, 'likelihood')] = df[(point, 'likelihood')]
+    #splineFilter(df, points)
 
-    print(smallDf.head())
-    splineFilter(smallDf, points)
+    print('ORIGINAL DATAFRAME')
+    print(df.head(6))
 
-    print(smallDf.head())
+    print('COPIED DATAFRAME')
+    print(smallDf.head(6))
+    
+    smallDf.interpolate(method='spline', order=3, inplace=True)
+
+    print('INTERPOLATED COPIED DATAFRAME')
+    print(smallDf.head(6))
 
     #These need to be user entered and must match all the columns in the CSV exactly!
     fixedPoints = ['nest', 'spout', 'food_hopper']
