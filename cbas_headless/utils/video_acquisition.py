@@ -18,7 +18,7 @@ from watchdog.events import FileSystemEventHandler
 import time
 
 class ImageCropTool:
-    def __init__(self, root, images, cconfig):
+    def __init__(self, root, images, cconfig=None):
         # Initialize the main window and canvas for the tool
         self.root = root
         self.root.title('Image Crop Tool')
@@ -48,7 +48,10 @@ class ImageCropTool:
         self.region = []
         self.regions = []
         self.images = images
-        self.cam_list = cconfig['cameras'].copy()
+        if cconfig!=None:
+            self.cam_list = cconfig['cameras'].copy()
+        else:
+            self.cam_list = None
 
         # Process images for cropping
         self.getImageCropRegions(images)
@@ -86,6 +89,11 @@ class ImageCropTool:
 
         x1, y1, x2, y2 = self.canvas.coords(self.rect)
 
+        x1 = x1-20
+        y1 = y1-20
+        x2 = x2-20
+        y2 = y2-20
+
         # Calculate normalized values for the crop region
         norm_width = (x2 - x1) / self.image.width
         norm_height = (y2 - y1) / self.image.height
@@ -110,19 +118,27 @@ class ImageCropTool:
             self.canvas.delete(self.rect)
             self.rect = None
 
+        print(im_list[0])
+
+        if not os.path.exists(im_list[0]):
+            raise Exception('Error loading frame image.')
+
         self.image = Image.open(im_list[0])
         self.image = self.resize_image(self.image, 800, 600)
+
         self.tk_image = ImageTk.PhotoImage(self.image)
         self.image_on_canvas = self.canvas.create_image(20, 20, anchor=tk.NW, image=self.tk_image)
+        self.reference = self.tk_image
         
 
         # Draw the current crop region
-        w = self.cam_list[0]['width'] * self.image.width
-        h = self.cam_list[0]['height'] * self.image.height
-        x = self.cam_list[0]['x'] * self.image.width
-        y = self.cam_list[0]['y'] * self.image.height
+        if self.cam_list!=None:
+            w = self.cam_list[0]['width'] * self.image.width
+            h = self.cam_list[0]['height'] * self.image.height
+            x = self.cam_list[0]['x'] * self.image.width
+            y = self.cam_list[0]['y'] * self.image.height
 
-        self.rect = self.canvas.create_rectangle(x, y, x+w, y+h , outline="red")
+            self.rect = self.canvas.create_rectangle(x, y, x+w, y+h , outline="red")
 
         # Uncomment the following line if you want to accumulate regions for each image
         # values.append(np.copy(self.region))
@@ -136,7 +152,8 @@ class ImageCropTool:
 
         if len(self.images) > 1:
             self.images = self.images[1:]
-            self.cam_list = self.cam_list[1:]
+            if self.cam_list!=None:
+                self.cam_list = self.cam_list[1:]
             self.getImageCropRegions(self.images)
         else:
             print("No more photos to crop.")
@@ -403,17 +420,29 @@ class ProcessMonitor:
 
 
 
+# Generate a single frame of a prerecorded video
+def generate_image_prerecorded(video_in, frame_location):
+    command = f"ffmpeg -i {video_in} -vf \"select=eq(n\,34)\" -vframes 1 -y {frame_location}"
+    subprocess.call(command, shell=True)
 
 # Generate a single frame of a stream
 def generate_image(rtsp_url, frame_location):
     command = f"ffmpeg -rtsp_transport tcp -i {rtsp_url} -vf \"select=eq(n\,34)\" -vframes 1 -y {frame_location}"
     subprocess.call(command, shell=True)
 
+# Create an FFMPEG process for cropping the prerecorded video
+def crop_video(video, cw, ch, cx, cy, output_loc):
+    command = [
+        'ffmpeg', '-i', str(video),
+        '-filter_complex', f"[0:v]crop=(iw*{cw}):(ih*{ch}):(iw*{cx}):(ih*{cy})[cropped]", 
+        '-map', '[cropped]', '-y', output_loc
+    ]
+    process = subprocess.Popen(command, stdin=subprocess.PIPE)
+    return process
 
 # Create an FFMPEG process for recording the stream
 def record_stream(rtsp_url, name, video_dir, time, seg_time, cw, ch, cx, cy, scale, framerate):
     output_path = f"{video_dir}/recording_{name}_%05d.mp4"
-    print(output_path)
     command = [
         'ffmpeg', '-rtsp_transport', 'tcp', '-i', str(rtsp_url), 
         '-r', str(framerate), '-t', str(time), 
@@ -826,6 +855,65 @@ def record(project_config='undefined', safe=True):
     for process in orchestrators:
         process.terminate()
         process.join()
+
+def crop_prerecorded(video_location):
+
+    processes = []
+    images = []
+
+    # Use glob to find all .mp4 files
+    if not video_location.endswith('/'):
+        video_location += '/'
+    video_locations = glob.glob(video_location + '*.mp4')
+    print(video_locations)
+
+    # frame folder
+    frame_folder = os.path.join(video_location, 'frames')
+    if not os.path.isdir(frame_folder):
+        os.mkdir(frame_folder)
+
+    cropped_folder = os.path.join(video_location, 'cropped')
+    if not os.path.isdir(cropped_folder):
+        os.mkdir(cropped_folder)
+
+    # grab the first frames for each video in the video list
+    for i, vid in enumerate(video_locations):
+        frame_location = os.path.join(frame_folder, os.path.splitext(os.path.split(vid)[1])[0]+".jpg")
+        process = Process(target=generate_image_prerecorded, args=(vid,frame_location))
+        process.start()
+        processes.append(process)
+        images.append(frame_location)
+
+    # wait for all processes to finish
+    for process in processes:
+        process.join()
+
+    root = tk.Tk()
+    root.geometry('840x600')
+    app = ImageCropTool(root, images)
+    root.mainloop()
+
+    if app.terminated:
+        raise Exception('User terminated process.')
+    
+    # generate a 2d array of cams x regions
+    values = app.generate_regions()
+    processes = []
+
+    for i, vid in enumerate(video_locations):
+        
+        cw = values[i][0]
+        ch = values[i][1]
+        cx = values[i][2]
+        cy = values[i][3]
+
+        # crop the videos
+        vid_location = os.path.join(cropped_folder, os.path.splitext(os.path.split(vid)[1])[0]+"_cropped.mp4")
+        process = crop_video(vid, cw, ch, cx, cy, vid_location) 
+        processes.append(process)
+
+    for process in processes:
+        process.wait()
 
 
 

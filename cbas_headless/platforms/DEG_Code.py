@@ -5,13 +5,8 @@ import time
 import traceback
 import subprocess
 import threading
-import matplotlib
-import matplotlib.pyplot as plt
-import tkinter
-matplotlib.use('TkAgg')
 import numpy as np
 import pandas as pd
-import cv2
 from queue import Queue
 from typing import Union
 import sys
@@ -21,34 +16,6 @@ import math
 from deepethogram import projects, utils, configuration
 from deepethogram.postprocessing import get_postprocessor_from_cfg
 from datetime import datetime
-import PyQt5
-
-import sklearn.metrics
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report
-from tabulate import tabulate
-import umap.umap_ as umap
-
-
-import joblib
-# from functools import partial
-# import shutil
-
-# import numpy as np
-# from omegaconf import ListConfig
-# import torch
-# from torch.utils.data import DataLoader
-# from tqdm import tqdm
-
-# from deepethogram.configuration import make_feature_extractor_inference_cfg
-# from deepethogram import projects, utils
-# from deepethogram.data.augs import get_cpu_transforms, get_gpu_transforms
-# from deepethogram.data.datasets import VideoIterable
-# from deepethogram.flow_generator.train import build_model_from_cfg as build_flow_generator
-# from deepethogram.flow_generator.utils import flow_to_rgb_polar, flow_to_rgb
-
 import deepethogram.feature_extractor.inference as fei
 
 

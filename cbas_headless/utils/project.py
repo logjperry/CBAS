@@ -547,7 +547,7 @@ def remove_camera(name, project_config='undefined'):
 
         
         
-def add_model(model_path, name, type="undefined", safe=True, project_config="undefined"):
+def add_model(model_path, model_env, name, type="undefined", safe=True, project_config="undefined"):
 
     valid_types = ['deepethogram','deeplabcut']
 
@@ -592,9 +592,25 @@ def add_model(model_path, name, type="undefined", safe=True, project_config="und
             # split based on type
             if type == 'deepethogram':
                 print('Processing deepethogram model.')
+                env_command = f"conda activate {model_env}"
 
-
+                # Run the command
+                try:
+                    subprocess.run(env_command, shell=True, check=True)
+                    print('Successfully activated the environment!')
+                except:
+                    raise Exception('Error activating the environment.')
                 
+                # Try finding the deepethogram project
+                try:
+                    # change this!
+                    subprocess.run(env_command+f" && python C:\\Users\\Jones-Lab\\Documents\\GitHub\\CBAS\\cbas_headless\\utils\\deg.py '{model_path}'", shell=True, check=True)
+                    print('Successfully found the project!')
+                except:
+                    raise Exception('Error activating the project.')
+                
+
+
             elif type == 'deeplabcut':
                 print('Processing deeplabcut model.')
             
