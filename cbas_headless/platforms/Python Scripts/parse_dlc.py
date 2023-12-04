@@ -2,27 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-def splineFilter(df, points):
-    x = df.index.tolist()
-    for point in points:
-        # Create a CubicSpline object for x and y columns
-        cs_x = CubicSpline(x, df[(point, 'x')].values)
-        cs_y = CubicSpline(x, df[(point, 'y')].values)
-        
-        # Interpolate the values and store them back in the DataFrame
-        df[(point, 'x')] = cs_x(x)
-        df[(point, 'y')] = cs_y(x)
-    
-
-
 #add column with velocity of prev to current frame
-#Legacy Code for velocity function:
-#newCol = []
-#newCol = np.sqrt((uniquePart['x'].diff()**2) + (uniquePart['y'].diff()**2))
-#newCol.fillna(0, inplace=True)
-#
-#indx = df.columns.get_loc((point, 'likelihood'))
-#df.insert(indx, (point, 'velocity'), newCol)
 def velocity(df, points):
     for point in points:
         df[(point, 'velocity')] = np.sqrt((df[(point, 'x')].diff()**2) + (df[(point, 'y')].diff()**2))
@@ -80,31 +60,34 @@ def main():
     #Filename needs standardization or user input
     df = pd.read_csv('dlc_test_file.csv', header=[1,2])
     df.drop(('bodyparts', 'coords'), axis= 1, inplace=True)
-    smallDf = df.iloc[::5].copy()
-    smallDf.interpolate(method='spline', order=3, inplace=True)
+    smoothedDf = df.iloc[::5].copy()
+    # Create a new index with an increment of 1
+    new_index = range(df.index.min(), df.index.max() + 1)
+
+    # Reindex the DataFrame with the new index
+    smoothedDf = smoothedDf.reindex(new_index)
     
     points = []
     for col in df.columns:
         if col[0] not in points:
             points.append(col[0])
 
-    splineFilter(df, points)
+    for point in points:
+        smoothedDf[(point, 'likelihood')] = df[(point, 'likelihood')]
 
-    print(smallDf.head())
-    splineFilter(smallDf, points)
-
-    print(smallDf.head())
+    
+    smoothedDf.interpolate(method='spline', order=3, inplace=True)
 
     #These need to be user entered and must match all the columns in the CSV exactly!
     fixedPoints = ['nest', 'spout', 'food_hopper']
     bodyParts = ['nose', 'hand_left', 'hand_right', 'back', 'base_tail']
     
 
-    velocity(df, bodyParts)
+    velocity(smoothedDf, bodyParts)
     
-    distDict = distances(df, bodyParts, fixedPoints)
+    distDict = distances(smoothedDf, bodyParts, fixedPoints)
     speedDict = speed(distDict, 0.1)
-    dfDict = dfToDict(df, points)
+    dfDict = dfToDict(smoothedDf, points)
     
 
 
