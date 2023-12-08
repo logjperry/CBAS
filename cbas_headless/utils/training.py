@@ -324,9 +324,11 @@ class Scoreboard:
         tk.Label(self.parent, text="Behavior", font=('Arial',9,'bold','underline')).grid(row=0, column=0)
         tk.Label(self.parent, text="Index", font=('Arial',9,'bold','underline')).grid(row=0, column=1)
         tk.Label(self.parent, text="Frames", font=('Arial',9,'bold','underline')).grid(row=0, column=2)
+        tk.Label(self.parent, text="Instances", font=('Arial',9,'bold','underline')).grid(row=0, column=3)
 
         # Store references to the count and score variables
         self.count_vars = {}
+        self.inst_vars = {}
 
         # Create rows for each name
         for i, name in enumerate(self.names, start=1):
@@ -339,6 +341,10 @@ class Scoreboard:
             self.count_vars[name] = count_var
             tk.Label(self.parent, textvariable=count_var).grid(row=i, column=2)
 
+            inst_var = tk.StringVar(value="0")  # Initial instances
+            self.inst_vars[name] = inst_var
+            tk.Label(self.parent, textvariable=inst_var).grid(row=i, column=3)
+
 
 
     def update(self, config):
@@ -350,6 +356,7 @@ class Scoreboard:
             for inst in instances[b]:
                 count += inst['length']
             self.count_vars[b].set(str(count))
+            self.inst_vars[b].set(str(len(instances[b])))
 
 class Metricboard:
     def __init__(self, parent, names, prediction_paths=None, probability_paths=None):
