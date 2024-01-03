@@ -21,7 +21,7 @@ from sklearn.metrics import f1_score as f1
 from sklearn.metrics import confusion_matrix
 
 class RecordingPlayer:
-    def __init__(self, window, window_title, video_paths, speed, tsconfig, config_path, grade=False):
+    def __init__(self, window, window_title, video_paths, speed, tsconfig, config_path, grade=False, fast=False, infers=False):
         self.window = window
         self.window.title(window_title)
         self.tsconfig = tsconfig
@@ -29,13 +29,18 @@ class RecordingPlayer:
         self.config_path = config_path
         self.instance_stack = []
 
+        self.fast = fast
+
         self.instance_cache = []
         self.video_index = 0
 
         self.upper = tk.Frame(self.window)
 
+        self.infers = infers
+
 
         self.prediction_paths = {}
+        self.inferences = {}
         self.probability_paths = {}
 
         if grade==True:
@@ -47,13 +52,17 @@ class RecordingPlayer:
                 if os.path.exists(probs):
                     self.probability_paths[v] = probs
 
-            
+        if infers:
+            for v in video_paths:
+                pred = os.path.splitext(v)[0]+'_outputs_inferences.csv'
+                if os.path.exists(pred):
+                    self.inferences[v] = pd.read_csv(pred).to_numpy()[1:,1:]
         
         # setup the widget for classification
         self.behaviors = [b for b in tsconfig['behaviors']]
         self.update_instance_cache()
 
-        self.color_list = ['coral','goldenrod1','royalblue','red1','deeppink1','lightslateblue','gray23','limegreen']
+        self.color_list = ['coral','goldenrod1','royalblue','red1','deeppink1','lightslateblue','gray23','limegreen','cornsilk']
 
 
         # 1 frame of wiggle room
@@ -136,31 +145,40 @@ class RecordingPlayer:
         # Read the next frame from the video. If reached the end of the video, release the video capture object
         ret, frame = self.cap.read()
         if ret:
+            self.canvas.delete("all")
             self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
             self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
             if self.primed:
                 self.canvas.create_oval(10, 10, 30, 30, fill=self.color_list[self.behavior_index-1], outline="#DDD", width=1)
-            
+            if self.infers:
+                ind = np.argmax(self.inferences[self.video_paths[int(self.video_index)]][int(self.get_frame_number()-1)])
+                
+                val = self.inferences[self.video_paths[int(self.video_index)]][int(self.get_frame_number()-1)][ind]
+                if val>.95:
+                    self.canvas.create_oval(256-10, 10, 256-30, 30, fill=self.color_list[ind], outline="#DDD", width=1)
+
             # check to see if frame is in an instance range
             behaviors = self.behaviors
             instances = self.tsconfig['instances']
             frame = self.get_frame_number()
             video_found = False
 
+
             if len(self.instance_cache)==0:
                 video_found = False
             else:
                 video_found = True
 
-            for inst in self.instance_cache:
-                if inst['video']!=self.video_paths[self.video_index]:
-                    continue 
-                elif inst['start']<=frame and inst['end']>=frame:
-                    ind = self.behaviors.index(inst['label'])
-                    self.canvas.create_oval(10, 10, 30, 30, fill=self.color_list[ind], outline="#DDD", width=1)
-                else:
-                    video_found = True
-                    continue
+            if not self.fast:
+                for inst in self.instance_cache:
+                    if inst['video']!=self.video_paths[self.video_index]:
+                        continue 
+                    elif inst['start']<=frame and inst['end']>=frame:
+                        ind = self.behaviors.index(inst['label'])
+                        self.canvas.create_oval(10, 10, 30, 30, fill=self.color_list[ind], outline="#DDD", width=1)
+                    else:
+                        video_found = True
+                        continue
             if video_found:
                 self.canvas.create_rectangle(10, 230, 30, 250, fill='black', outline="#DDD", width=1)
 
@@ -366,8 +384,6 @@ class Metricboard:
         self.probability_paths = probability_paths
 
         self.maximize = False
-        if self.probability_paths!=None:
-            self.maximize = True
 
         self.create_widgets()
 
@@ -792,7 +808,7 @@ def save_config(tsconfig, config_path):
 
 
 # This function is just expecting a directory with subdirectories containing mp4 videos and labels in the DEG form
-def create_training_set(recording_path, behaviors=[], project_config='undefined', grade=False):
+def create_training_set(recording_path, behaviors=[], project_config='undefined', grade=False, fast=False, infers=False):
 
     # open the project config and get the test_set yaml path
     if project_config=='undefined':
@@ -817,7 +833,6 @@ def create_training_set(recording_path, behaviors=[], project_config='undefined'
         # grabbing the locations of the test_sets
         test_sets = pconfig['test_sets_path']
 
-        print(test_sets)
     
     else:
 
@@ -863,15 +878,24 @@ def create_training_set(recording_path, behaviors=[], project_config='undefined'
         if len(valid_videos)==0:
             raise Exception('No valid videos found. Exiting.')
         
-        behaviors = tsconfig['behaviors']
-        instances = tsconfig['instances']
+        behaviors_stored = tsconfig['behaviors']
+        instances_stored  = tsconfig['instances']
+
         for b in behaviors:
-            for inst in instances[b]:
+            if b not in behaviors_stored:
+                behaviors_stored.append(b)
+                instances_stored[b]=[]
+
+        for b in behaviors_stored:
+            for inst in instances_stored[b]:
                 if inst['video'] in valid_videos:
                     continue 
                 else:
                     vid = inst['video']
                     raise Exception(f'{vid} not found in the recording folder. This video contains behavior instances and needs to be included in the recording folder.')
+        
+        behaviors = behaviors_stored
+        instances = instances_stored
     else:
         
         # make sure that the recording folder has what we need in it
@@ -906,7 +930,7 @@ def create_training_set(recording_path, behaviors=[], project_config='undefined'
 
     speed = 5  # Initial frame skip speed
     root = tk.Tk()
-    rp = RecordingPlayer(root, "Training Set Creator", valid_videos, speed, tsconfig, training_set_config, grade=grade)
+    rp = RecordingPlayer(root, "Training Set Creator", valid_videos, speed, tsconfig, training_set_config, grade=grade, fast=fast, infers=infers)
 
     save_config(rp.tsconfig, rp.config_path)
 
