@@ -767,16 +767,16 @@ def infer(config_path, recording_path):
                 predictions_prob = torch.softmax(predictions, dim=1)
 
                 # Convert class probabilities to one-hot encoded representations
-                # _, predicted_classes = predictions_prob.max(dim=1)
-                # one_hot_predictions = torch.zeros_like(predictions_prob)
-                # one_hot_predictions.scatter_(1, predicted_classes.view(-1, 1), 1)
+                _, predicted_classes = predictions_prob.max(dim=1)
+                one_hot_predictions = torch.zeros_like(predictions_prob)
+                one_hot_predictions.scatter_(1, predicted_classes.view(-1, 1), 1)
 
                 # # Convert one-hot predictions to NumPy array
-                # one_hot_predictions = one_hot_predictions.cpu().numpy()
+                one_hot_predictions = one_hot_predictions.cpu().numpy()
 
                 predictions_prob = predictions_prob.cpu().numpy()
 
-                total.extend(predictions_prob)
+                total.extend(one_hot_predictions)
 
 
         if len(data)!=len(total):
