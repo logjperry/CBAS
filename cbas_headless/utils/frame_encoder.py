@@ -846,6 +846,7 @@ def infer(config_path, recording_path):
                 end = len(X)
 
             X1 = torch.from_numpy(X[start:end])
+            X1 = X1.unsqueeze(0)
 
 
             # Move X to the same device as the model
@@ -862,7 +863,7 @@ def infer(config_path, recording_path):
 
                 predictions = predictions.numpy()
 
-                y.extend(predictions)
+                y.extend(predictions[0,:])
 
 
         total = y
@@ -870,7 +871,6 @@ def infer(config_path, recording_path):
         if len(data)!=len(total):
             raise Exception('Lengths do not match!')
         
-        print(f'finished with {path}')
 
         total = np.array(total)
 
@@ -881,6 +881,8 @@ def infer(config_path, recording_path):
         with h5py.File(filename, "w") as f:
             # Create a dataset to store the matrix
             dset = f.create_dataset("features", data=total)
+        
+        print(f'finished with {path}')
 
 def infer_seq(config_path, recording_path):
     videos = []
