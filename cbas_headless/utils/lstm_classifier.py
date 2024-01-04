@@ -12,9 +12,11 @@ import math
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 from torch.utils.data import random_split
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 import torch.optim as optim
 from torch.optim.lr_scheduler import CyclicLR
+
+import pickle
 
 import pandas as pd
 
@@ -50,11 +52,13 @@ class S_Features(Dataset):
 
 
         self.seq_labels = []
+            
         self.generate()
 
         random.shuffle(self.seq_labels)
         random.shuffle(self.seq_labels)
         random.shuffle(self.seq_labels)
+
 
         print(len(self.seq_labels))
 
@@ -456,12 +460,12 @@ def train_basic(train_set, test_set, seq_len, classes):
     
     input_dim = 137
     hidden_size = 128
-    latent_dim = 128
-    d_model = 256
-    lr = .0001
+    latent_dim = 64
+    d_model = 64
+    lr = .00001
     nheads = 16
-    num_encoder_layers = 10
-    num_decoder_layers = 10
+    num_encoder_layers = 5
+    num_decoder_layers = 5
     num_epochs = 200
 
     m_path = f'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\lstm_classifier.pth'
@@ -503,6 +507,8 @@ def train_basic(train_set, test_set, seq_len, classes):
             print(f'Epoch {epoch}:')
 
             # Move data to the device
+            target = target.long()
+            target = torch.argmax(target, dim=1)
             seq, target = seq.to(device), target.to(device)
 
             # Forward pass, backward pass, and optimize
@@ -525,20 +531,48 @@ def train_basic(train_set, test_set, seq_len, classes):
                 print(f'Epoch {epoch}:')
 
                 # Move data to the device
+                target = target.long()
+                target = torch.argmax(target, dim=1)
                 seq, target = seq.to(device), target.to(device)
                 output = classifier(seq)
 
                 # Convert predicted and target values to integers
                 pred_indices = output.argmax(dim=1).detach().cpu().numpy()
-                true_indices = target.argmax(dim=1).detach().cpu().numpy()
+                true_indices = target.detach().cpu().numpy()
 
                 # Append indices to the lists
                 all_preds.extend(pred_indices)
                 all_trues.extend(true_indices)
 
             # Create a classification report using all the batches together
+            # Calculate the confusion matrix for all classes
+            conf_matrix = confusion_matrix(all_trues, all_preds)
+
+            # Loop through classes and compute specificity for each class
+            for i in range(len(classes)):
+                print(classes[i])
+
+                # Extract TP, FP, TN, and FN for the current class
+                TP = conf_matrix[i, i]  # True positives
+                FP = np.sum(conf_matrix[:, i]) - TP  # False positives
+                TN = np.sum(np.delete(conf_matrix, i, axis=0), axis=1).sum()  # True negatives
+                FN = np.sum(np.delete(conf_matrix, i, axis=1), axis=0).sum()  # False negatives
+
+                specificity = TN / (TN + FP)
+                sensitivity = TP / (TP + FN)
+                matthews_coef = (TN * TP - FN * FP) / (np.sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)))
+                nmatthews_coef = (matthews_coef + 1) / 2
+                balanced_accuracy = (sensitivity + specificity) / 2
+
+                print(f"Specificity: {specificity}")
+                print(f"Balanced Accuracy: {balanced_accuracy}")
+                print(f"NMCC: {nmatthews_coef}")
+                print()
+
             report = classification_report(all_trues, all_preds)
             print(report)
+
+
 
         
 
@@ -646,14 +680,27 @@ def train(train_set, test_set, seq_len, classes):
 
 
 
-def load_data(instance_paths, seq_len, behaviors_ordered=None, test=.2):
+def load_data(instance_paths, seq_len, behaviors_ordered=None, test=.2, cache=True):
 
-    s_dataset = S_Features(instance_paths=instance_paths, seq_len=seq_len, behaviors_ordered=behaviors_ordered)
-    s_dataset_test = S_Features_Test(s_dataset)
+    if not cache:
+        # If not caching, create and save the dataset objects
+        s_dataset = S_Features(instance_paths=instance_paths, seq_len=seq_len, behaviors_ordered=behaviors_ordered)
+        s_dataset_test = S_Features_Test(s_dataset)
+
+        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\training.pkl', 'wb') as file:
+            pickle.dump(s_dataset, file)
+        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\testing.pkl', 'wb') as file:
+            pickle.dump(s_dataset_test, file)
+    else:
+        # If caching, load the dataset objects from the pickle files
+        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\training.pkl', 'rb') as file:
+            s_dataset = pickle.load(file)
+        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\testing.pkl', 'rb') as file:
+            s_dataset_test = pickle.load(file)
 
     # Create a DataLoader
-    training_set = DataLoader(s_dataset, batch_size=256, shuffle=True, num_workers=8)
-    testing_set = DataLoader(s_dataset_test, batch_size=256, shuffle=True, num_workers=8)
+    training_set = DataLoader(s_dataset, batch_size=128, shuffle=True, num_workers=8)
+    testing_set = DataLoader(s_dataset_test, batch_size=128, shuffle=True, num_workers=8)
 
 
     train_basic(training_set, testing_set, seq_len=seq_len, classes=s_dataset.behaviors)
