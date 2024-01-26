@@ -68,8 +68,9 @@ class headless_deg:
         self.data_path = self.cfg.project.data_path
         self.model_path = self.cfg.project.model_path
 
-        self.get_trained_models()
+        print(self.cfg)
 
+        self.get_trained_models()
 
     def get_trained_models(self):
         trained_models = projects.get_weights_from_model_path(self.model_path)
@@ -94,7 +95,6 @@ class headless_deg:
                 if key == 'lightning_checkpoints':
                     key = os.path.basename(os.path.dirname(os.path.dirname(run)))
                 trained_dict[model][key] = run
-
 
     # initializes the default architectures of the models
     def get_default_archs(self):
@@ -128,7 +128,6 @@ class headless_deg:
         for filename in filenames:
             self.initialize_video(filename)
 
-
     def initialize_video(self, videofile: Union[str, os.PathLike]):
         
         try: 
@@ -160,11 +159,6 @@ class headless_deg:
             print(tb)
             return
         
-
-    
-        
-    
-
     def get_selected_models(self, model_type: str = None, model_names={'flow_generator': '', 'feature_extractor': '', 'sequence': ''}):
         flow_model = None
         fe_model = None
@@ -307,24 +301,7 @@ class headless_deg:
         string = string[:-1] + ']'
         args += [string]
         return args
-        
-    # def generate_fe_videolist(self):
-    #     records = projects.get_records_from_datadir(self.data_path)
-    #     keys, no_outputs = [], []
-    #     for key, record in records.items():
-    #         keys.append(key)
-    #         no_outputs.append(record['output'] is None)
-        
-    #     records = []
-    #     for key, infer in zip(keys, no_outputs):
-    #         if infer:
-    #             record_dir = os.path.join(self.data_path, key)
-    #             records.append(os.path.join(record_dir, key+'.mp4'))
-
-    #     return records
-     
-        
-        
+           
     def feature_infer(self, video_list):
         args = self.generate_featureextractor_inference_args()
         
@@ -421,23 +398,18 @@ class headless_deg:
         
         self.latent_name = latent_name
         
-    
     def export_predictions(self):
 
-        array = self.estimated_labels
-        
-        df = pd.DataFrame(data=array, columns=self.cfg.project.class_names)
-        
-        fname, _ = os.path.splitext(self.videofile)
-        
+        array = self.estimated_labels       
+        df = pd.DataFrame(data=array, columns=self.cfg.project.class_names)      
+        fname, _ = os.path.splitext(self.videofile)    
         prediction_fname = fname+ '_predictions.csv'
-
         df.to_csv(prediction_fname)
 
 
-if __name__ == '__main__':
+def inference(DEG_project_path):
 
-    DEG_model_path = sys.argv[1]
+    DEG_model_path = DEG_project_path
     hl_deg = headless_deg(DEG_model_path)
 
     while True:

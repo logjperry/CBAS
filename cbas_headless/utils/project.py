@@ -10,21 +10,28 @@ import shutil
 
 # Intializes a new project
 def create_project(project_name):
-    # creates a new CBAS project using the following file structure:
-    # project_name
-    #   - core
-    #       * cameras.yaml
-    #       - videos
-    #   - recordings
-    #   - figures
-    #       - model
-    #           * models.yaml
-    #       - ethograms
-    #       - rayleigh
-    #   - performance
-    #       * eval.yaml
-    #       - test_sets
-    #       - raw_values
+
+
+    """
+    Creates a new CBAS project using the following file structure in the working directory of the user:
+    project_name
+      - core
+          * cameras.yaml
+          - videos
+      - recordings
+      - figures
+          - model
+              * models.yaml
+          - ethograms
+          - rayleigh
+      - performance
+          * eval.yaml
+          - test_sets
+          - raw_values
+
+    Parameters:
+        - project_name (String): Name of the project. 
+    """
 
     # need to grab the user's current directory
     user_dir = os.getcwd()
@@ -155,8 +162,21 @@ def create_project(project_name):
     with open(eval, 'w+') as file:
         yaml.dump(config, file, allow_unicode=True)
 
+
+    print(f'Project creation successful! Please enter the project directory, {project}, before running any further setup commands.')
+
 # Adds a camera to a given project
 def add_camera(rtsp_url, name, project_config='undefined', safe=True):
+
+    """
+    A function for adding rtsp cameras to the project. This function does not handle the ffmpeg recording settings for video acquisition (framerate, brightness, contrast, etc.).
+
+    Parameters:
+        - rtsp_url (String): Url for the camera to be added. The user should be wary to add the camera username/password and rtsp port to the url if needed. 
+        - name (String): Unique name for the camera to be added.
+        - project_config (String): File location of the project config. If left as 'undefined' the user must be in the same folder as the project config yaml file.
+        - safe (boolean): If True, function opens the camera url to make sure that the camera is accessible prior to adding the camera. If False, the camera url is added without any checks.
+    """
 
     if project_config=='undefined':
         # assume that the user is located in an active project
@@ -381,6 +401,14 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
 # Removes a camera from a given project, scorched earth style
 def remove_camera(name, project_config='undefined'):
 
+    """
+    A function for removing rtsp cameras from the project.
+
+    Parameters:
+        - name (String): Unique name for the camera to be removed.
+        - project_config (String): File location of the project config. If left as 'undefined' the user must be in the same folder as the project config yaml file.
+    """
+
     if project_config=='undefined':
         # assume that the user is located in an active project
         user_dir = os.getcwd()
@@ -545,9 +573,118 @@ def remove_camera(name, project_config='undefined'):
         if not found:
             raise Exception('Could not remove the camera from the list because it could not be found.')
 
+# A function for displaying all rtsp cameras in the project.
+def disp_cameras(project_config='undefined'):
+    """
+    A function for displaying all rtsp cameras in the project.
+
+    Parameters:
+        - project_config (String): File location of the project config. If left as 'undefined' the user must be in the same folder as the project config yaml file.
+    """
+
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the camera
+        cameras = pconfig['cameras_path']
+
+        # extract the cameras config file
+        try:
+            with open(cameras, 'r') as file:
+                cconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
+        
+        # just remove everything related to the named camera
+        camera_list = cconfig['cameras']
+
+        # REMINDER
+        # cameras
+        #   - name
+        #   - rtsp_url
+        #   - video_dir
+        #   - width
+        #   - height
+        #   - x
+        #   - y
+        
+        for cam in camera_list:
+            print(cam['Name'])
+            print('\t URL: '+cam['rtsp_url'])
+            print('\t Video Directory: '+cam['video_dir'])
+            print('\t Crop Region:')
+            print('\t\t X: '+cam['x'])
+            print('\t\t Y: '+cam['y'])
+            print('\t\t Width: '+cam['width'])
+            print('\t\t Height: '+cam['height'])
+
         
         
+    else:
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the camera
+        cameras = pconfig['cameras_path']
+
+        # extract the cameras config file
+        try:
+            with open(cameras, 'r') as file:
+                cconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the cameras config file. Check for yaml syntax errors.')
+
+        # just remove everything related to the named camera
+        camera_list = cconfig['cameras']
+
+        # REMINDER
+        # cameras
+        #   - name
+        #   - rtsp_url
+        #   - video_dir
+        #   - width
+        #   - height
+        #   - x
+        #   - y
+        
+        for cam in camera_list:
+            print(cam['Name'])
+            print('\t URL: '+cam['rtsp_url'])
+            print('\t Video Directory: '+cam['video_dir'])
+            print('\t Crop Region:')
+            print('\t\t X: '+cam['x'])
+            print('\t\t Y: '+cam['y'])
+            print('\t\t Width: '+cam['width'])
+            print('\t\t Height: '+cam['height'])
+
+# Adds a model for use in inferencing recordings  
 def add_model(model_path, model_env, name, type="undefined", safe=True, project_config="undefined"):
+    
 
     valid_types = ['deepethogram','deeplabcut']
 

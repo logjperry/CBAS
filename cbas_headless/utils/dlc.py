@@ -1,7 +1,7 @@
 import deeplabcut
 import os
 
-def infer_recordings(config_path, recording_path):
+def infer(config_path, recording_path, ):
 
     videos = []
 
@@ -14,4 +14,5 @@ def infer_recordings(config_path, recording_path):
                 if os.path.exists(video_loc):
                     videos.append(video_loc)
     
-    deeplabcut.analyze_videos(config_path, videos, shuffle=1, save_as_csv=True, videotype='.mp4')
+    deeplabcut.analyze_videos(config_path, videos, shuffle=1, save_as_csv=True, videotype='.mp4', destfolder=storage_path)
+
