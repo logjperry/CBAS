@@ -1,0 +1,3 @@
+recursive-include cbas_headless/platforms/modified_deepethogram/conf *.yaml
+recursive-include cbas_headless/assets *.png
+recursive-include cbas_headless/assets *.gif
