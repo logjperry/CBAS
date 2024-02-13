@@ -21,6 +21,7 @@ Written and maintained by Logan Perry, a post-bac in the Jones Lab at Texas A&M 
     <img src="./cbas_headless/assets/main.png" alt="CBAS Diagram" style="width: 500px; height: auto;">
 </div>
 
+
 * A timelapse gif of CBAS in action. CBAS is capable of inferring with both DLC and DEG models at the same time!
 <div style="display: flex; flex-direction:row; align-items: center; justify-content: space-around; padding: 50px">
     <img src="./cbas_headless/assets/realtime.gif" alt="CBAS in action" style="width: 500px; height: auto;">
@@ -84,7 +85,13 @@ The visualization and analysis module provides circadian plotting tools for visu
 
 3. <b>So much more to be announced soon:</b> Reach out to loganperry@tamu.edu for more information or to request a feature!
 
+## CBAS Sequence Model
 
+The CBAS sequence model is a transformer-based sequence model for deepethogram outputs. It is designed to be more accurate and more efficient than the original deepethogram sequence model. Below is a schematic of how this model works. Briefly, the model consists of two layers. The first layer is an encoder layer for cleaning, condensing, and combining the 1024 spatial and flow features that DEG outputs. The second layer is a classification layer that takes as input a sequence of encoded outputs from the first layer and uses them to classify frame sequences into behavior labels.
+
+<div style="display: flex; flex-direction:column; align-items: center; justify-content: flex-end; padding: 10px;">
+    <img src="./cbas_headless/assets/CBAS_model.png" alt="CBAS Sequence Model" style="width: 500px; height: auto;">
+</div>
 
 # Credits
 
