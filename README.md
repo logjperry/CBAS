@@ -97,9 +97,11 @@ The CBAS sequence model is a transformer-based sequence model for deepethogram o
 
  - Deeplabcut is a skeletal based vision model. It was developed by the A. and M.W. Mathis Labs. Please support the original deeplabcut package by visiting their repository, [here](https://github.com/DeepLabCut)
 
+
 # Acknowledgements
 
 
 
 # License
-MIT License
+
+This project is licensed under the GNU Lesser General Public License v3.0. See the LICENSE file for details.
