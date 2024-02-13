@@ -39,6 +39,9 @@ from sklearn.metrics import confusion_matrix
 
 import cbas_headless.postprocessor
 
+import ttkbootstrap as ttk
+theme = 'superhero'
+
 
 class PieChart:
     def __init__(self, behaviors, amounts, file, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800):
@@ -1155,7 +1158,7 @@ def postprocessor_validation(postprocessor_name, test_samples, project_config='u
 
     metrics_file = os.path.join(figures, postprocessor_name+'_metrics.csv')
     
-    root = tk.Tk()
+    root = ttk.Window(themename=theme)
     ml = MachineLabel(root, behaviors, trues = all_trues, preds = all_preds, probs = all_probs, pie_chart_file=pie_chart_path, pr_curve_file=pr_curve_file, metrics_file=metrics_file, sample_size=int(len(all_trues)/test_samples))
 
 def deg_cross_validation(postprocessor_name, degname, test_samples, project_config='undefined'):

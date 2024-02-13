@@ -18,11 +18,11 @@ import numpy as np
 import random
 import pickle
 
-import ttkbootstrap as ttk
 
 from sklearn.metrics import f1_score as f1
 from sklearn.metrics import confusion_matrix
 
+import ttkbootstrap as ttk
 theme = 'superhero'
 
 class RecordingPlayer:
@@ -596,6 +596,7 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
         # grabbing the locations of the test_sets
         training_set = pconfig['trainingsets_path']
         postprocessors = pconfig['postprocessors_config']
+        recordings = pconfig['recordings_path']
 
     
     else:
@@ -615,8 +616,13 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
         # grabbing the locations of the test_sets
         training_set = pconfig['trainingsets_path']
         postprocessors = pconfig['postprocessors_config']
+        recordings = pconfig['recordings_path']
 
     s_dataset_test = None
+
+    recording_config = os.path.join(recordings, recording_names[0], 'details.yaml')
+    with open(recording_config, 'r') as file:
+        rconfig = yaml.safe_load(file)
 
     # gets the test set to exclude
     if exclude_model_test_set is not None:

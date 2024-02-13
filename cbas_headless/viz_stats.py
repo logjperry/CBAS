@@ -31,9 +31,11 @@ import seaborn as sns
 import matplotlib as mpl
 from matplotlib import cm
 
+import ttkbootstrap as ttk
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
+theme = 'superhero'
 
 class TransitionGraph:
 
@@ -1443,6 +1445,8 @@ class Ethograms:
 
         self.frame = tk.Frame(self.window)
 
+        self.right = tk.Frame(self.window)
+
         self.color_list = color_list
 
 
@@ -1454,13 +1458,16 @@ class Ethograms:
 
         
         options = self.group_names
-        self.listbox = tk.Listbox(self.window, selectmode = "multiple")
-        self.listbox.pack(side=tk.LEFT)
+        self.label = tk.Label(self.right, text = "Camera Groups", font=('TkDefaultFixed', 10)).pack(side=tk.TOP, anchor='sw', pady=5, padx=5)
+        self.listbox = tk.Listbox(self.right, selectmode = "multiple")
+        self.listbox.pack(pady=5, padx=5)
         
         for option in options:
             self.listbox.insert(tk.END, option)
         
-        self.button = tk.Button(self.window, text="Replot", command=self.update).pack(side=tk.LEFT)
+        self.button = tk.Button(self.right, text="Replot", command=self.update, font=('TkDefaultFixed', 10), relief='flat', autostyle=False).pack(side=tk.BOTTOM, anchor='center', pady=5, padx=5)
+
+        self.right.pack(side=tk.RIGHT, pady=5, padx=5)
 
 
 
@@ -1600,7 +1607,9 @@ class Ethograms:
 
                     series = series*.90
 
-                    LD = cycles[i]
+                    LD = True
+                    if cycles is not None:
+                        LD = cycles[i]
 
                     if LD and first:
                         ctx.set_source_rgb(223/255,223/255,223/255)
@@ -1689,7 +1698,7 @@ class Ethograms:
 
             f = []
             for (dirpath, dirnames, filenames) in os.walk(path):
-                f.extend(filenames)
+                f.extend(dirnames)
                 break
             
             cameras = {}
@@ -1701,20 +1710,37 @@ class Ethograms:
                 except:
                     continue
 
-                if name in camera_names:
-                    cameras[name].append(file)
-                else:
+                if name not in camera_names:
                     camera_names.append(name)
-                    cameras[name] = [file]
+                    cameras[name] = []
             
             groups = [{p:c for p in range(numpaths)} for c in camera_names]
 
 
-        path = paths[0]   
-        actograms = os.path.join(path,'actograms')
+            
 
-        if not os.path.exists(actograms):
-            os.mkdir(actograms)
+        # for path in paths:
+
+        #     f = []
+        #     for (dirpath, dirnames, filenames) in os.walk(path):
+        #         f.extend(filenames)
+        #         break
+            
+        #     cameras = {}
+        #     camera_names = []
+
+        #     for file in f:
+        #         try:
+        #             name = file.split('_')[1]
+        #         except:
+        #             continue
+
+        #         if name in camera_names:
+        #             cameras[name].append(file)
+        #         else:
+        #             camera_names.append(name)
+        #             cameras[name] = [file]
+        path = paths[0]   
 
         total_group_data = {}
         group_names = []
@@ -1725,29 +1751,47 @@ class Ethograms:
             group_names.append(ind)
             ind+=1
 
-
         ind = 0
         for path in paths:
 
-            f = []
-            for (dirpath, dirnames, filenames) in os.walk(path):
-                f.extend(filenames)
-                break
-            
-            cameras = {}
-            camera_names = []
 
-            for file in f:
+            exp = os.path.split(path)[1]
+
+            f = []
+
+            for (dirpath, dirnames, filenames) in os.walk(path):
+                f.extend(dirnames)
+                break
+
+
+            deg = True 
+
+
+            for fold in f:
+                if os.path.exists(os.path.join(path, f[0], f[0]+'_outputs_inferences.csv')):
+                    deg = False
+
+            
+
+            if not deg:
+                files = {fold:os.path.join(path, fold, fold+'_outputs_inferences.csv') for fold in f}
+            elif deg:
+                files = {fold:os.path.join(path, fold, fold+'_predictions.csv') for fold in f}
+            else:
+                raise Exception('No valid files found in '+path)
+
+
+            for file in files.keys():
                 try:
                     name = file.split('_')[1]
                 except:
                     continue
 
                 if name in camera_names:
-                    cameras[name].append(file)
+                    cameras[name].append(files[file])
                 else:
                     camera_names.append(name)
-                    cameras[name] = [file]
+                    cameras[name] = [files[file]]
 
             video_size = 18000
             bin_size = 18000
@@ -1761,11 +1805,10 @@ class Ethograms:
             for g in camera_names:
                 time_data = {}
                 for file in cameras[g]:
-                    full_path = os.path.join(path, file)
-                    df = pd.read_csv(full_path)
+                    df = pd.read_csv(file)
                     df = df.to_numpy()[1:,1:]
 
-                    time_data[remove_leading_zeros(file.split('_')[2])] = []
+                    time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])] = []
 
                     for r in range(len(df[0,:])):
                         bins = []
@@ -1790,7 +1833,7 @@ class Ethograms:
                             
                             bins = np.array(temp_bins)
 
-                        time_data[remove_leading_zeros(file.split('_')[2])].append(bins)
+                        time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])].append(bins)
 
 
                 
@@ -1887,7 +1930,9 @@ class Ethograms:
                     continue
 
                 recStart = self.starts[ind]
-                recLight = lightcycles[ind]
+                recLight = True
+                if lightcycles is not None:
+                    recLight = lightcycles[ind]
 
                 if total_group_data[g] is None:
                     total_group_data[g] = [{'exp':os.path.split(path)[1],'length':recDays, 'start':recStart, 'light':recLight, 'data':timeseries_data[recCam]}]
@@ -1908,6 +1953,9 @@ class Ethograms:
     def update(self):
         
         selections = self.listbox.curselection()
+
+        if len(selections)==0:
+            return
         
         self.group_name = [self.group_names[g] for g in selections]
         
@@ -1987,20 +2035,82 @@ def transitions(model_name, behaviors, recording_names, starts=None, name=None, 
 
     paths = [data[i][0] for i in range(len(data))]
 
-    print(paths)
-    print(behaviors)
-    print(starts)
-    print(name)
 
     root = tk.Tk()
     tg = TransitionRaster(root, 'Transition Raster', behaviors, paths, starts, name)
 
 def transitiondifs(behaviors, recording_names, start1, start2, color1, color2, name1, name2):
     root = tk.Tk()
-    tg = TransitionRasterDif(root, 'Transition Differences', behaviors, path1, path2, start1, start2, color1, color2, name1, name2)
+    tg = TransitionRasterDif(root, 'Transition Differences', behaviors, recording_names[0], recording_names[1], start1, start2, color1, color2, name1, name2)
 
-def ethograms(behaviors, recording_names, groups, starts, lightcycles, maxdays=50):
-    root = tk.Tk()
+def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=None, maxdays=50, groups=None, name=None, project_config='undefined'):
+
+    # open the project config and get the test_set yaml path
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+
+    
+    else:
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+
+
+    data = []
+    for r in recording_names:
+        recording_path = os.path.join(recordings_path, r,model_name)
+        recording_config = os.path.join(recordings_path, r, 'details.yaml')
+
+        with open(recording_config, 'r') as file:
+            rconfig = yaml.safe_load(file)
+        
+        if model_name in rconfig['cameras_per_model'].keys() and len(rconfig['cameras_per_model'][model_name])>0:
+            try:
+                data.append((recording_path, float(rconfig['start_time'].split(':')[0]) + float(rconfig['start_time'].split(':')[1])))
+            except:
+                data.append((recording_path, 0))
+
+
+    if starts is None:
+        starts = [data[i][1] for i in range(len(data))]
+
+    if name is None:
+        name = model_name+'_'+recording_names[0]
+
+    paths = [data[i][0] for i in range(len(data))]
+
+    root = ttk.Window(themename=theme)
     tg = Ethograms(root, 'Ethograms', behaviors=behaviors, paths=paths, groups=groups, starts=starts, lightcycles=lightcycles, maxdays=maxdays)
 
 ##### UNDER CONSTRUCTION #####
