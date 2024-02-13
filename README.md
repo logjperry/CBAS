@@ -14,7 +14,7 @@
 
 CBAS is a suite of tools for phenotyping of complex behaviors. It is designed to automate inferencing of complex behaviors from active live streams of video data, and to provide a simple interface for visualizing and analyzing the results. CBAS currently supports automated inferencing from state-of-the-art machine learning vision models including deepethogram (DEG) and deeplabcut (DLC). CBAS also includes a transformer-based sequence model for deepethogram outputs, which is designed to be more accurate and more efficient than the original deepethogram sequence model. 
 
-Written and maintained by Logan Perry in the Jones Lab at Texas A&M University.
+Written and maintained by Logan Perry, a post-bac in the Jones Lab at Texas A&M University.
 
 * CBAS was designed with circadian monitoring in mind! Here's a visual of what CBAS can do (the behaviors are not set in stone, and can be changed to fit the user's needs). 
 <div style="display: flex; flex-direction:row; align-items: center; justify-content: space-around; padding: 50px">
