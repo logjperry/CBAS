@@ -1,3 +1,4 @@
+LICENSE
 MANIFEST.in
 README.md
 setup.py
@@ -15,15 +16,19 @@ cbas_headless.egg-info/SOURCES.txt
 cbas_headless.egg-info/dependency_links.txt
 cbas_headless.egg-info/top_level.txt
 cbas_headless/assets/CBAS_logo.png
+cbas_headless/assets/CBAS_model.png
 cbas_headless/assets/__init__.py
 cbas_headless/assets/actogram.png
 cbas_headless/assets/comparison.png
+cbas_headless/assets/ethogram_window.png
 cbas_headless/assets/main.png
+cbas_headless/assets/model_validation.png
 cbas_headless/assets/piechart.png
 cbas_headless/assets/prcurve.png
 cbas_headless/assets/raster.png
 cbas_headless/assets/realtime.gif
 cbas_headless/assets/realtime_inference.gif
+cbas_headless/assets/training_set_creation.png
 cbas_headless/platforms/__init__.py
 cbas_headless/platforms/modified_deepethogram/__init__.py
 cbas_headless/platforms/modified_deepethogram/postprocessing.py

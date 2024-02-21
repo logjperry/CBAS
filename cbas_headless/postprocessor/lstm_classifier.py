@@ -466,7 +466,7 @@ def train_basic(train_set, test_set, seq_len, classes):
     nheads = 16
     num_encoder_layers = 5
     num_decoder_layers = 5
-    num_epochs = 200
+    num_epochs = 50
 
     m_path = f'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\lstm_classifier.pth'
     config_path = os.path.splitext(m_path)[0]+'.yaml'

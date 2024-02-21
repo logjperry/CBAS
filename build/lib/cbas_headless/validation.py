@@ -43,6 +43,60 @@ import ttkbootstrap as ttk
 theme = 'superhero'
 
 
+
+import numpy as np
+from sklearn.metrics import auc, precision_recall_curve
+from scipy.stats import norm
+
+def pr_test(labels, pred1, pred2, boot_n=10000, boot_stratified=True, alternative="two.sided"):
+    assert set(np.unique(labels)) == {0, 1}, "Only two classes allowed: 0 and 1."
+    assert len(pred1) == len(pred2), "Predictions must have the same length."
+    
+    def bootstrap_diff():
+        if boot_stratified:
+            indices_0 = np.where(labels == 0)[0]
+            indices_1 = np.where(labels == 1)[0]
+            boot_indices_0 = np.random.choice(indices_0, size=len(indices_0), replace=True)
+            boot_indices_1 = np.random.choice(indices_1, size=len(indices_1), replace=True)
+            boot_indices = np.concatenate([boot_indices_0, boot_indices_1])
+        else:
+            boot_indices = np.random.choice(len(labels), size=len(labels), replace=True)
+        
+        boot_labels = labels[boot_indices]
+        boot_pred1 = pred1[boot_indices]
+        boot_pred2 = pred2[boot_indices]
+        
+        precision1, recall1, _ = precision_recall_curve(boot_labels, boot_pred1)
+        precision2, recall2, _ = precision_recall_curve(boot_labels, boot_pred2)
+        auc1 = auc(recall1, precision1)
+        auc2 = auc(recall2, precision2)
+        
+        return auc1 - auc2
+    
+    diffs = np.array([bootstrap_diff() for _ in range(boot_n)])
+    diffs = diffs[~np.isnan(diffs)]
+    
+    precision1, recall1, _ = precision_recall_curve(labels, pred1)
+    precision2, recall2, _ = precision_recall_curve(labels, pred2)
+    auc1 = auc(recall1, precision1)
+    auc2 = auc(recall2, precision2)
+    obs_diff = auc1 - auc2
+    stat = obs_diff / np.std(diffs, ddof=1)
+    
+    if alternative == "two.sided":
+        p_value = 2 * norm.cdf(-abs(stat))
+    elif alternative == "greater":
+        p_value = norm.cdf(-stat)
+    else:  # less
+        p_value = norm.cdf(stat)
+    
+    return {
+        'auc1': auc1,
+        'auc2': auc2,
+        'p_value': p_value
+    }
+
+
 class PieChart:
     def __init__(self, behaviors, amounts, file, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800):
 
@@ -1164,6 +1218,15 @@ def postprocessor_validation(postprocessor_name, test_samples, project_config='u
 def deg_cross_validation(postprocessor_name, degname, test_samples, project_config='undefined'):
 
     
+    from cbas_headless.postprocessor import lstm_classifier
+    from cbas_headless.postprocessor.lstm_classifier import S_Features_Test
+    from cbas_headless.postprocessor.lstm_classifier import Encoder
+    from cbas_headless.postprocessor.lstm_classifier import Decoder
+    from cbas_headless.postprocessor.lstm_classifier import Classifier
+
+    sys.modules['lstm_classifier'] = lstm_classifier
+
+    
     class CustomUnpickler(pickle.Unpickler):
         def find_class(self, module, name):
             if module == "lstm_classifier":
@@ -1230,19 +1293,46 @@ def deg_cross_validation(postprocessor_name, degname, test_samples, project_conf
     if pname is None:
         raise Exception('Could not find a postprocessor with that name.')
     
+
+
+    
     test_set = models[pname]['test_set']
     
     with open(test_set, 'rb') as file:
         s_dataset_test = CustomUnpickler(file).load()
 
+
+
+
+    m_path = models[pname]['classifier']
+
     behaviors = models[pname]['behaviors']
 
+    # Check if CUDA is available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load the state dict from the old model
+    classifier = torch.load(m_path, map_location=device)
+
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # Move your model to the device (GPU if available)
+    classifier.to(device)
+
+    classifier.eval()
     
         
     # Initialize empty lists to store predicted and true labels
     all_preds = []
     all_probs = []
     all_trues = []
+
+    
+    all_preds_PP = []
+    all_probs_PP = []
+    all_trues_PP = []
 
     predictions_dfs = {instance['video']: os.path.splitext(instance['video'])[0] + '_outputs.h5' for instance in s_dataset_test.instances}
 
@@ -1275,11 +1365,105 @@ def deg_cross_validation(postprocessor_name, degname, test_samples, project_conf
         prob.append(df[frame,0])
         prob = np.array(prob)
 
-
         all_trues.append(label)
         all_preds.append(pred)
         all_probs.append(prob)
+
+        file_path = os.path.splitext(df_file)[0]+"_encoded_features.h5"
+        outputs_path = df_file
+
+        with h5py.File(file_path, 'r') as f:
+            length = len(np.array(f['features']))
+
+            before_buffer = True
+            after_buffer = True
+
+            abs_start = 0 
+            abs_end = length
+            
+
+            seq_start = frame - 7
+            seq_end = frame + 7+1
+            if seq_start<abs_start:
+                before_buffer = False
+                seq_start = abs_start
+            if seq_end>abs_end:
+                after_buffer = False
+                seq_end = abs_end
+
+            sequence = np.array(f['features'][seq_start:seq_end])
+            with h5py.File(outputs_path, 'r') as f:
+                logits = np.array(f['resnet50']['logits'][seq_start:seq_end])
+                sequence = np.concatenate((sequence, logits), axis=1)
+
+            if len(sequence) < 2*7+1:
+                sequence_prime = []
+                if not before_buffer:
+                    diff = 2*7+1 - len(sequence)
+                    for j in range(diff):
+                        sequence_prime.append(np.zeros_like(sequence[0]))
+                    for s in sequence:
+                        sequence_prime.append(s)
+                elif not after_buffer:
+                    diff = 2*7+1 - len(sequence)
+                    for s in sequence:
+                        sequence_prime.append(s)
+                    for j in range(diff):
+                        sequence_prime.append(np.zeros_like(sequence[0]))
+                
+                sequence = np.array(sequence_prime)
+            
+            # final check to make sure it's the right length
+            if len(sequence) != 2*7+1:
+                print('found the incorrect sequence length, trying the next one')
+                continue
+
         
+        # almost done, now just generate a one-hot encoding of the label
+        onehot = []
+        for b in s_dataset_test.behaviors:
+            if b!=label:
+                onehot.append(0.0)
+            else:
+                onehot.append(1.0)
+        
+        onehot = np.array(onehot, dtype="float32")
+
+
+        seq = torch.tensor(sequence, dtype=torch.float32)
+        target = torch.tensor(onehot, dtype=torch.float32) 
+
+        seq = seq.unsqueeze(0)
+        target = target.unsqueeze(0)       
+
+        # Move data to the device
+        target = target.long()
+        target = torch.argmax(target, dim=1)
+        seq, target = seq.to(device), target.to(device)
+        output = classifier(seq)
+
+        # Convert predicted and target values to integers
+        pred_indices = output.argmax(dim=1).detach().cpu().numpy()
+        probs = F.softmax(output).detach().cpu().numpy()
+        true_indices = target.detach().cpu().numpy()
+
+        # Append indices to the lists
+        all_preds_PP.append(pred_indices[0])
+        all_probs_PP.append(probs[0])
+        all_trues_PP.append(true_indices[0])
+
+        
+
+    for i in range(len(behaviors)):
+        print(behaviors[i])
+        PP_probs = np.array(all_probs_PP)
+        deg_probs = np.array(all_probs)
+
+
+        binary_labels = [1 if t==i else 0 for t in all_trues]
+
+        print(pr_test(np.array(binary_labels), PP_probs[:,i], deg_probs[:,i]))
+        print()
 
 
     pie_chart_path = os.path.join(figures, degname+'_testset.png')
