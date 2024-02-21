@@ -15,41 +15,35 @@ import pandas as pd
 
 
 class Frames(Dataset):
-    def __init__(self, data_dir, video_length, transform=None, multiple=False):
+    def __init__(self, data_dirs, video_length):
         """
         Args:
             data_dir (string): Directory with all the data.
             transform (callable, optional): Optional transform to be applied on a sample.
         """
-        self.data_dir = data_dir
-        self.transform = transform
+        self.data_dirs = data_dirs
         self.video_length = video_length
 
-        self.file_names = os.listdir(data_dir)
-        if multiple:
-            temp = []
-            for fn in self.file_names:
-                subdir_path = os.path.join(self.data_dir, fn)
+        self.file_names = []
+        for d in data_dirs:
 
-                for f in os.listdir(subdir_path):
-                    temp.append(os.path.join(fn, f))
+            folders = os.listdir(d)
 
-            self.file_names = temp
+            for fn in folders:
+                subdir_path = os.path.join(d, fn, fn+"_outputs.h5")
 
-        self.features = {vid:[] for vid in self.file_names}
+                if os.path.exists(subdir_path):
+                    self.file_names.append(os.path.join(d, fn))
 
 
     def __len__(self):
+        # up sample each video 100 times
         return len(self.file_names)*100
 
     def __getitem__(self, idx):
         fidx = int(idx/100)
-        file_name = self.file_names[fidx]
+        file_path = self.file_names[fidx]
 
-        subdir_path = os.path.join(self.data_dir, file_name)
-        fn = os.path.split(file_name)[1]
-
-        file_path = os.path.join(subdir_path, fn+"_outputs.h5")
         random_i = random.randint(0, self.video_length)
 
         try:
@@ -66,10 +60,8 @@ class Frames(Dataset):
 
                 features = np.concatenate((spatial_features, flow_features), axis=0)
         except:
-            print(f'Error opening {file_path}')
-            return self.__getitem__(idx+1)
-
-
+            print(f'Error opening {file_path}, terminating process.')
+            raise Exception('Error opening file.')
 
         data = features
 
@@ -78,8 +70,11 @@ class Frames(Dataset):
         X = np.array(X)
         XP = np.copy(X)
         
+        # add random noise to the data to increase robustness
         ablations = random.sample(range(len(X)), 256)
         var = np.var(X)
+
+        # choose our random noise from a normal distribution with a mean of 0 and a variance of var^2
         additions = [random.random()*var**2 - (var**2)/2 for i in range(len(ablations))]
         XP[ablations] += additions
 
@@ -93,15 +88,10 @@ class Frames(Dataset):
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model):
         super(PositionalEncoding, self).__init__()
-        # Create a learnable embedding matrix for positional encodings
         self.positional_encodings = nn.Parameter(torch.randn(d_model) * 0.01)
 
     def forward(self, x):
-        # x shape is [batch_size, seq_len, d_model]
-        # Add positional encoding to each sequence in the batch
-        # The broadcasting mechanism will automatically handle the batch dimension
         return x + self.positional_encodings
-
 
 class TransformerEncoderLayer(nn.Module):
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.2):
@@ -120,13 +110,10 @@ class TransformerEncoderLayer(nn.Module):
         src2 = self.norm1(src)
         src = src + self.dropout1(self.self_attn(src2, src2, src2)[0])
         src2 = self.norm2(src)
-        # Apply the first linear layer and ReLU activation
         src2 = F.relu(self.linear1(src2))
         src2 = self.dropout2(src2)
-        # Apply the second linear layer
-        src2 = self.linear2(src2)  # Ensure this layer outputs a tensor with the last dimension 512
+        src2 = self.linear2(src2)
 
-        # Add the output of feedforward network to the original input (residual connection)
         src = src + self.dropout(src2)
         return src
 
@@ -154,12 +141,10 @@ class TransformerDecoderLayer(nn.Module):
         input1 = input1 + self.dropout1(self.multihead_attn(input1, latent, latent)[0])
         input2 = self.norm2(input1)
         
-        # Feedforward network
         input2 = F.relu(self.linear1(input2))
         input2 = self.dropout3(input2)
-        input2 = self.linear2(input2)  # Ensure this layer outputs a tensor with the last dimension 512
+        input2 = self.linear2(input2)
         
-        # Add the output of feedforward network to the original input (residual connection)
         output = input + self.dropout2(input2)
         return output
 
@@ -167,23 +152,20 @@ class FrameEncoder(nn.Module):
     def __init__(self, input_dim, latent_dim, d_model, nhead, num_encoder_layers):
         super(FrameEncoder, self).__init__()
 
-        # positional encoding
         self.pos_encoder = PositionalEncoding(d_model)
 
         self.encoder_embedding = nn.Linear(input_dim, d_model)
 
         self.encoder_layers = nn.ModuleList([TransformerEncoderLayer(d_model, nhead) for _ in range(num_encoder_layers)])
 
-        
         self.dropout = nn.Dropout(0.2)
 
-        # Compress to latent space
         self.encoder_to_latent = nn.Linear(d_model, latent_dim)   
         
 
     def forward(self, src):
         src = self.encoder_embedding(src)
-        src = self.pos_encoder(src)  # Apply positional encoding
+        src = self.pos_encoder(src)  
 
         for layer in self.encoder_layers:
             src = layer(src)
@@ -196,7 +178,6 @@ class FrameDecoder(nn.Module):
     def __init__(self, input_dim, latent_dim, output_dim, d_model, nhead, num_decoder_layers, dropout=0.2):
         super(FrameDecoder, self).__init__()
 
-        # Expand from latent space
         self.latent_to_decoder = nn.Linear(latent_dim, d_model)  
         self.input_embedding = nn.Linear(input_dim, d_model)  
         
@@ -234,7 +215,6 @@ class FrameDecoder(nn.Module):
     
         return input
 
- 
 class Autoencoder(nn.Module):
     def __init__(self, encoder, decoder):
         super(Autoencoder, self).__init__()
@@ -256,9 +236,7 @@ class Autoencoder(nn.Module):
         return output
 
 
-
-
-def train_autoencoder(us_data_loader, model_path, latent_dim = 64, d_model = 128, nhead = 64, num_encoder_layers = 15, num_decoder_layers = 15, lr = 0.00001, num_epochs = 5000):
+def train_autoencoder(us_data_loader, model_path, epochs=5000, input_dim=1024, latent_dim = 64, d_model = 128, nhead = 64, num_encoder_layers = 15, num_decoder_layers = 15, lr = 0.00001):
     
 
     m_path = model_path
@@ -301,7 +279,7 @@ def train_autoencoder(us_data_loader, model_path, latent_dim = 64, d_model = 128
 
 
     # Training loop
-    for epoch in range(num_epochs):
+    for epoch in range(epochs):
 
         
         for inputs, targets, ablations in us_data_loader:
@@ -353,7 +331,6 @@ def train_autoencoder(us_data_loader, model_path, latent_dim = 64, d_model = 128
         if (epoch+1)%20==0:
             torch.save(autoencoder, m_path)
 
-
 def load_postprocessors(project_config='undefined'):
     if project_config=='undefined':
         # assume that the user is located in an active project
@@ -375,15 +352,16 @@ def load_postprocessors(project_config='undefined'):
             raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the models
-        models = pconfig['models_path']
+        pppath = pconfig['postprocessors']
+        ppconfig = pconfig['postprocessors_config']
         # extract the mdoels config file
         try:
-            with open(models, 'r') as file:
-                mconfig = yaml.safe_load(file)
+            with open(ppconfig, 'r') as file:
+                ppconfig = yaml.safe_load(file)
         except:
             raise Exception('Failed to extract the contents of the models config file. Check for yaml syntax errors.')
 
-        return mconfig
+        return (pppath, ppconfig)
     else:
         if os.path.exists(project_config):
             print('Project found.')
@@ -398,39 +376,105 @@ def load_postprocessors(project_config='undefined'):
             raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
         # grabbing the locations of the models
-        models = pconfig['models_path']
+        pppath = pconfig['postprocessors']
+        ppconfig = pconfig['postprocessors_config']
         # extract the mdoels config file
         try:
-            with open(models, 'r') as file:
-                mconfig = yaml.safe_load(file)
+            with open(ppconfig, 'r') as file:
+                ppconfig = yaml.safe_load(file)
         except:
             raise Exception('Failed to extract the contents of the models config file. Check for yaml syntax errors.')
 
-        return mconfig
+        return (pppath, ppconfig)
+    
+def load_recording_paths(project_config='undefined'):
+    # open the project config and get the test_set yaml path
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
 
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
 
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
-def train_on_data(recording_path, model_name, video_length=18000):
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
 
+    
+    else:
 
-    us_dataset = Frames(data_dir=recording_path, video_length=video_length, multiple=True)
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+    
+    return recordings_path
+
+def train_on_data(recording_names, deg_name, postprocessor_name, video_length, epochs = 5000, batch_size=512, shuffle=True, num_workers=8, project_config='undefined'):
+
+    pppath, ppconfig = load_postprocessors(project_config)
+    recording_paths = load_recording_paths(project_config)
+
+    existing_names = list(ppconfig['models'].keys())
+
+    if postprocessor_name in existing_names:
+        raise Exception('Postprocessor name already exists. Please choose another name.')
+    
+    model_folder = os.path.join(pppath, postprocessor_name)
+    if not os.path.exists(model_folder):
+        os.mkdir(model_folder)
+
+    model_path = os.path.join(model_folder, 'frame_encoder.pth')
+
+    recording_paths = []
+
+    for rn in recording_names:
+        if os.path.exists(os.path.join(recording_paths, rn)):
+            raise Exception(f'{rn} not found.')
+        if not os.path.exists(os.path.join(recording_paths, rn, deg_name)):
+            raise Exception(f'{rn} does not have {deg_name} DeepEthogram outputs.')
+        recording_paths.append(os.path.join(recording_paths, rn))
+
+    us_dataset = Frames(data_dirs=recording_paths, video_length=video_length)
 
     # Create a DataLoader
-    us_data_loader = DataLoader(us_dataset, batch_size=512, shuffle=True, num_workers=8)
-
-
-
-
+    us_data_loader = DataLoader(us_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
     train_autoencoder(us_data_loader, model_path)
 
+    # if successful, add the model to the config file
+    ppconfig['models'][postprocessor_name]['encoder'] = model_path
+    ppconfig['models'][postprocessor_name]['training_set'] = None
+    ppconfig['models'][postprocessor_name]['test_set'] = None
+    ppconfig['models'][postprocessor_name]['classifier'] = None
+    ppconfig['models'][postprocessor_name]['behaviors'] = None
 
-
+    with open(os.path.join(pppath, 'postprocessors.yaml'), 'w') as file:
+        yaml.dump(ppconfig, file)
 
 def infer(config_path, recording_path, videos):
 
-    
-    
     
     deg_feature_paths = [os.path.splitext(vid)[0]+'_outputs.h5' for vid in videos]
 

@@ -22,7 +22,7 @@ Written and maintained solely by Logan Perry, a post-bac in the Jones Lab at Tex
 </p>
 
 
-* A timelapse gif of CBAS in action. CBAS is capable of inferring with both DLC and DEG models at the same time!
+* A timelapse gif of CBAS in action (may be slow to load). CBAS is capable of inferring with both DLC and DEG models at the same time!
 <p align="center">
     <img src="./cbas_headless/assets/realtime.gif" alt="CBAS in action" style="width: 500px; height: auto;">
 </p>
