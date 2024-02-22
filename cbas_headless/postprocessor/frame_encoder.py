@@ -30,10 +30,10 @@ class Frames(Dataset):
             folders = os.listdir(d)
 
             for fn in folders:
-                subdir_path = os.path.join(d, fn, fn+"_outputs.h5")
+                file_name = os.path.join(d, fn, fn+"_outputs.h5")
 
-                if os.path.exists(subdir_path):
-                    self.file_names.append(os.path.join(d, fn))
+                if os.path.exists(file_name):
+                    self.file_names.append(file_name)
 
 
     def __len__(self):
@@ -434,7 +434,7 @@ def load_recording_paths(project_config='undefined'):
 def train_on_data(recording_names, deg_name, postprocessor_name, video_length, epochs = 5000, batch_size=512, shuffle=True, num_workers=8, project_config='undefined'):
 
     pppath, ppconfig = load_postprocessors(project_config)
-    recording_paths = load_recording_paths(project_config)
+    recording_path = load_recording_paths(project_config)
 
     existing_names = list(ppconfig['models'].keys())
 
@@ -447,23 +447,28 @@ def train_on_data(recording_names, deg_name, postprocessor_name, video_length, e
 
     model_path = os.path.join(model_folder, 'frame_encoder.pth')
 
-    recording_paths = []
+    recordings_paths = []
+
 
     for rn in recording_names:
-        if os.path.exists(os.path.join(recording_paths, rn)):
-            raise Exception(f'{rn} not found.')
-        if not os.path.exists(os.path.join(recording_paths, rn, deg_name)):
-            raise Exception(f'{rn} does not have {deg_name} DeepEthogram outputs.')
-        recording_paths.append(os.path.join(recording_paths, rn))
+        
+        if not os.path.isdir(os.path.join(recording_path, rn)):
+            raise Exception(f'{os.path.join(recording_path, rn)} not found.')
+        if not os.path.isdir(os.path.join(recording_path, rn, deg_name)):
+            raise Exception(f'{os.path.join(recording_path, rn)} does not have {deg_name} DeepEthogram outputs.')
+        recordings_paths.append(os.path.join(recording_path, rn, deg_name))
 
-    us_dataset = Frames(data_dirs=recording_paths, video_length=video_length)
+    us_dataset = Frames(data_dirs=recordings_paths, video_length=video_length)
+
+
 
     # Create a DataLoader
     us_data_loader = DataLoader(us_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
-    train_autoencoder(us_data_loader, model_path)
+    train_autoencoder(us_data_loader, model_path, epochs=epochs)
 
     # if successful, add the model to the config file
+    ppconfig['models'][postprocessor_name] = {}
     ppconfig['models'][postprocessor_name]['encoder'] = model_path
     ppconfig['models'][postprocessor_name]['training_set'] = None
     ppconfig['models'][postprocessor_name]['test_set'] = None
@@ -566,6 +571,93 @@ def infer(config_path, recording_path, videos):
             dset = f.create_dataset("features", data=total)
         
         print(f'finished with {path}')
+
+
+
+def encode(config_path, feature_paths):
+
+    with open(config_path, 'r') as file:
+        model_config = yaml.safe_load(file)
+
+    # model_config = {
+    #     'seq_length':seq_len,
+    #     'input_dim':input_dim,
+    #     'output_dim':input_dim,
+    #     'latent_dim':latent_dim,
+    #     'model_dim':d_model,
+    #     'num_heads':nhead,
+    #     'num_encode_layers':num_encoder_layers,
+    #     'num_decode_layers':num_decoder_layers,
+    #     'learning_rate':lr,
+    #     'model_path':m_path
+    # }
+
+    autoencoder = torch.load(model_config['model_path'])
+
+    # Check if CUDA is available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # Move your model to the device (GPU if available)
+    autoencoder.to(device)
+
+    autoencoder.eval()
+
+    for path in feature_paths.keys():
+
+        with h5py.File(path, 'r') as f:
+            flow_features = np.array(f['resnet50']['flow_features'][:])
+            spatial_features = np.array(f['resnet50']['spatial_features'][:])
+
+            features = np.concatenate((spatial_features, flow_features), axis=1)
+
+
+
+        data = features
+        X = features
+        
+        X = np.array(X)
+
+        y = []
+
+        for i in range(0, len(X), 1000):
+            start = i 
+            end = i+1000
+
+            if end>len(X):
+                end = len(X)
+
+            X1 = torch.from_numpy(X[start:end])
+            X1 = X1.unsqueeze(0)
+
+
+            # Move X to the same device as the model
+            X1 = X1.to(device)
+
+            with torch.no_grad():
+
+                predictions = autoencoder.encode(X1)
+
+                predictions = predictions.cpu()
+
+                predictions = predictions.numpy()
+
+                y.extend(predictions[0,:])
+
+
+        total = y
+
+        if len(data)!=len(total):
+            raise Exception('Lengths do not match!')
+        
+
+        total = np.array(total)
+        
+        feature_paths[path] = total 
+
+    return feature_paths
 
 
 

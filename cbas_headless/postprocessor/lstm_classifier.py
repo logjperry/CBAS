@@ -16,20 +16,26 @@ from sklearn.metrics import classification_report, confusion_matrix
 import torch.optim as optim
 from torch.optim.lr_scheduler import CyclicLR
 
+from . import frame_encoder
+
 import pickle
 
 import pandas as pd
 
 class S_Features(Dataset):
-    def __init__(self, instance_paths, seq_len, behaviors_ordered=None, test_set=.2):
+    def __init__(self, instance_paths, seq_len, behaviors_ordered=None, test_set=.2, encoder=None):
+
+        self.encoder = encoder 
         
         self.behaviors = behaviors_ordered
+        if self.behaviors is None:
+            self.behaviors = []
         instances = []
         test_instances = []
 
-        for instance_path in instance_paths:
-            print(instance_path)
-            with open(instance_path) as file:
+        for recording, insts in instance_paths.items():
+            
+            with open(insts) as file:
                 training_set = yaml.safe_load(file)
 
                 behaviors = training_set['behaviors']
@@ -37,18 +43,32 @@ class S_Features(Dataset):
                     if b not in self.behaviors:
                         if behaviors_ordered is None:
                             self.behaviors.append(b)
+                        else:
+                            continue
                     for inst in training_set['instances'][b]:
+                        inst['deg_features'] = os.path.join(recording, os.path.splitext(os.path.split(inst['video'])[1])[0], os.path.splitext(os.path.split(inst['video'])[1])[0]+"_outputs.h5")
+                        
+                        
+                        if not os.path.exists(inst['deg_features']):
+                            print(f'Could not find {inst["deg_features"]}, skipping')
+                            continue
+
                         coin_flip = random.random()
                         if coin_flip>test_set:
                             instances.append(inst)
                         else:
                             test_instances.append(inst)
-                print(len(instances))
 
 
         self.instances = instances
         self.test_instances = test_instances
         self.seq_len = seq_len
+
+
+        encodings = {inst['deg_features']:None for inst in self.instances}
+        if encoder is not None:
+            encodings = frame_encoder.encode(encoder, encodings)
+        self.encodings = encodings
 
 
         self.seq_labels = []
@@ -76,11 +96,94 @@ class S_Features(Dataset):
             for t in range(int(start), int(end)):
 
 
-                file_path = os.path.splitext(video)[0]+"_outputs_encoded_features.h5"
-                outputs_path = os.path.splitext(video)[0]+"_outputs.h5"
+                file_path = os.path.splitext(inst['deg_features'])[0]+"_encoded_features.h5"
+                outputs_path = inst['deg_features']
+                data = None
 
-                with h5py.File(file_path, 'r') as f:
-                    length = len(np.array(f['features']))
+                if not os.path.exists(file_path) and self.encoder is None:
+                    print(f'Could not find {file_path}, skipping')
+                    print(f'Either set encoding to true or infer with the encoder separately before training.')
+                    continue
+                elif not os.path.exists(file_path) and self.encoder is not None:
+                    data = self.encodings[outputs_path]
+
+                if data is None:
+                    with h5py.File(file_path, 'r') as f:
+                        length = len(np.array(f['features']))
+
+                        before_buffer = True
+                        after_buffer = True
+
+                        abs_start = 0 
+                        abs_end = length
+                        
+
+                        seq_start = t - self.seq_len
+                        seq_end = t + self.seq_len+1
+                        if seq_start<abs_start:
+                            before_buffer = False
+                            seq_start = abs_start
+                        if seq_end>abs_end:
+                            after_buffer = False
+                            seq_end = abs_end
+
+                        sequence = np.array(f['features'][seq_start:seq_end])
+                        with h5py.File(outputs_path, 'r') as f:
+                            logits = np.array(f['resnet50']['logits'][seq_start:seq_end])
+                            sequence = np.concatenate((sequence, logits), axis=1)
+
+                        if len(sequence) < 2*self.seq_len+1:
+                            sequence_prime = []
+                            if not before_buffer:
+                                diff = 2*self.seq_len+1 - len(sequence)
+                                for j in range(diff):
+                                    sequence_prime.append(np.zeros_like(sequence[0]))
+                                for s in sequence:
+                                    sequence_prime.append(s)
+                            elif not after_buffer:
+                                diff = 2*self.seq_len+1 - len(sequence)
+                                for s in sequence:
+                                    sequence_prime.append(s)
+                                for j in range(diff):
+                                    sequence_prime.append(np.zeros_like(sequence[0]))
+                            
+                            sequence = np.array(sequence_prime)
+                        
+                        # final check to make sure it's the right length
+                        if len(sequence) != 2*self.seq_len+1:
+                            print('found the incorrect sequence length, trying the next one')
+                            continue
+
+                        # some random padding of the sequence to make it so that the dataset is bit more balanced
+                        coin_flip = random.random()
+                        if coin_flip<.01:
+                            # ablate some of the sequence to mimic starting at the beginning of a video
+                            amount = random.randint(1,self.seq_len)
+
+                            for j in range(amount):
+                                sequence[j] = np.zeros_like(sequence[0])
+
+                        elif coin_flip>.99:
+                            # ablate some of the sequence to mimic starting at the end of a video
+                            amount = random.randint(1,self.seq_len)
+
+                            for j in range(amount):
+                                sequence[len(sequence)-j-1] = np.zeros_like(sequence[0])
+                    
+                    # almost done, now just generate a one-hot encoding of the label
+                    onehot = []
+                    for b in self.behaviors:
+                        if b!=label:
+                            onehot.append(0.0)
+                        else:
+                            onehot.append(1.0)
+                    
+                    onehot = np.array(onehot, dtype="float32")
+
+                    # return sequence and label
+                    self.seq_labels.append((sequence, onehot)) 
+                else:
+                    length = len(np.array(data))
 
                     before_buffer = True
                     after_buffer = True
@@ -98,7 +201,7 @@ class S_Features(Dataset):
                         after_buffer = False
                         seq_end = abs_end
 
-                    sequence = np.array(f['features'][seq_start:seq_end])
+                    sequence = np.array(data[seq_start:seq_end])
                     with h5py.File(outputs_path, 'r') as f:
                         logits = np.array(f['resnet50']['logits'][seq_start:seq_end])
                         sequence = np.concatenate((sequence, logits), axis=1)
@@ -170,6 +273,12 @@ class S_Features_Test(Dataset):
         self.instances = dataset.test_instances
         self.seq_len = dataset.seq_len
 
+        self.encoder = dataset.encoder
+
+        encodings = {inst['deg_features']:None for inst in self.instances}
+        if self.encoder is not None:
+            encodings = frame_encoder.encode(self.encoder, encodings)
+        self.encodings = encodings
 
         self.seq_labels = []
         self.generate()
@@ -188,11 +297,97 @@ class S_Features_Test(Dataset):
 
 
 
-            file_path = os.path.splitext(video)[0]+"_outputs_encoded_features.h5"
-            outputs_path = os.path.splitext(video)[0]+"_outputs.h5"
+            file_path = os.path.splitext(inst['deg_features'])[0]+"_encoded_features.h5"
+            outputs_path = inst['deg_features']
+            data = None
 
-            with h5py.File(file_path, 'r') as f:
-                length = len(np.array(f['features']))
+            if not os.path.exists(file_path) and self.encoder is None:
+                print(f'Could not find {file_path}, skipping')
+                print(f'Either set encoding to true or infer with the encoder separately before training.')
+                continue
+            elif not os.path.exists(file_path) and self.encoder is not None:
+                data = self.encodings[outputs_path]
+
+            if data is None:
+
+                with h5py.File(file_path, 'r') as f:
+                    length = len(np.array(f['features']))
+
+                    before_buffer = True
+                    after_buffer = True
+
+                    abs_start = 0 
+                    abs_end = length
+                    
+                    random_ind = random.randint(start, end)
+
+                    seq_start = random_ind - self.seq_len
+                    seq_end = random_ind + self.seq_len+1
+                    if seq_start<abs_start:
+                        before_buffer = False
+                        seq_start = abs_start
+                    if seq_end>abs_end:
+                        after_buffer = False
+                        seq_end = abs_end
+
+                    sequence = np.array(f['features'][seq_start:seq_end])
+                    with h5py.File(outputs_path, 'r') as f:
+                        logits = np.array(f['resnet50']['logits'][seq_start:seq_end])
+                        sequence = np.concatenate((sequence, logits), axis=1)
+                        #sequence = logits
+
+                    if len(sequence) < 2*self.seq_len+1:
+                        sequence_prime = []
+                        if not before_buffer:
+                            diff = 2*self.seq_len+1 - len(sequence)
+                            for i in range(diff):
+                                sequence_prime.append(np.zeros_like(sequence[0]))
+                            for s in sequence:
+                                sequence_prime.append(s)
+                        elif not after_buffer:
+                            diff = 2*self.seq_len+1 - len(sequence)
+                            for s in sequence:
+                                sequence_prime.append(s)
+                            for i in range(diff):
+                                sequence_prime.append(np.zeros_like(sequence[0]))
+                        
+                        sequence = np.array(sequence_prime)
+                    
+                    # final check to make sure it's the right length
+                    if len(sequence) != 2*self.seq_len+1:
+                        print('found the incorrect sequence length, trying the next one')
+                        continue
+
+                    # some random padding of the sequence to make it so that the dataset is bit more balanced
+                    coin_flip = random.random()
+                    if coin_flip<.05:
+                        # ablate some of the sequence to mimic starting at the beginning of a video
+                        amount = random.randint(1,self.seq_len)
+
+                        for i in range(amount):
+                            sequence[i] = np.zeros_like(sequence[0])
+
+                    elif coin_flip>.95:
+                        # ablate some of the sequence to mimic starting at the end of a video
+                        amount = random.randint(1,self.seq_len)
+
+                        for i in range(amount):
+                            sequence[len(sequence)-i-1] = np.zeros_like(sequence[0])
+                
+                # almost done, now just generate a one-hot encoding of the label
+                onehot = []
+                for b in self.behaviors:
+                    if b!=label:
+                        onehot.append(0.0)
+                    else:
+                        onehot.append(1.0)
+                
+                onehot = np.array(onehot, dtype="float32")
+
+                # return sequence and label
+                self.seq_labels.append((sequence, onehot)) 
+            else:
+                length = len(np.array(data))
 
                 before_buffer = True
                 after_buffer = True
@@ -211,7 +406,7 @@ class S_Features_Test(Dataset):
                     after_buffer = False
                     seq_end = abs_end
 
-                sequence = np.array(f['features'][seq_start:seq_end])
+                sequence = np.array(data[seq_start:seq_end])
                 with h5py.File(outputs_path, 'r') as f:
                     logits = np.array(f['resnet50']['logits'][seq_start:seq_end])
                     sequence = np.concatenate((sequence, logits), axis=1)
@@ -281,13 +476,9 @@ class S_Features_Test(Dataset):
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model):
         super(PositionalEncoding, self).__init__()
-        # Create a learnable embedding matrix for positional encodings
         self.positional_encodings = nn.Parameter(torch.randn(d_model) * 0.01)
 
     def forward(self, x):
-        # x shape is [batch_size, seq_len, d_model]
-        # Add positional encoding to each sequence in the batch
-        # The broadcasting mechanism will automatically handle the batch dimension
         return x + self.positional_encodings
 
 
@@ -308,13 +499,10 @@ class TransformerEncoderLayer(nn.Module):
         src2 = self.norm1(src)
         src = src + self.dropout1(self.self_attn(src2, src2, src2)[0])
         src2 = self.norm2(src)
-        # Apply the first linear layer and ReLU activation
         src2 = F.relu(self.linear1(src2))
         src2 = self.dropout2(src2)
-        # Apply the second linear layer
-        src2 = self.linear2(src2)  # Ensure this layer outputs a tensor with the last dimension 512
+        src2 = self.linear2(src2)
 
-        # Add the output of feedforward network to the original input (residual connection)
         src = src + self.dropout(src2)
         return src
 
@@ -342,12 +530,10 @@ class TransformerDecoderLayer(nn.Module):
         input1 = input1 + self.dropout1(self.multihead_attn(input1, latent, latent)[0])
         input2 = self.norm2(input1)
         
-        # Feedforward network
         input2 = F.relu(self.linear1(input2))
         input2 = self.dropout3(input2)
-        input2 = self.linear2(input2)  # Ensure this layer outputs a tensor with the last dimension 512
+        input2 = self.linear2(input2)
         
-        # Add the output of feedforward network to the original input (residual connection)
         output = input + self.dropout2(input2)
         return output
 
@@ -355,7 +541,6 @@ class Encoder(nn.Module):
     def __init__(self, input_dim, latent_dim, d_model, nhead, num_encoder_layers, seq_len):
         super(Encoder, self).__init__()
 
-        # positional encoding
         self.pos_encoder = PositionalEncoding(d_model)
 
         self.encoder_embedding = nn.Linear(input_dim, d_model)
@@ -365,13 +550,12 @@ class Encoder(nn.Module):
         
         self.dropout = nn.Dropout(0.2)
 
-        # Compress to latent space
         self.encoder_to_latent = nn.Linear(d_model, latent_dim)   
         
 
     def forward(self, src):
         src = self.encoder_embedding(src)
-        src = self.pos_encoder(src)  # Apply positional encoding
+        src = self.pos_encoder(src)  
 
         for layer in self.encoder_layers:
             src = layer(src)
@@ -384,7 +568,6 @@ class Decoder(nn.Module):
     def __init__(self, input_dim, latent_dim, output_dim, d_model, nhead, num_decoder_layers, seq_len, dropout=0.2):
         super(Decoder, self).__init__()
 
-        # Expand from latent space
         self.latent_to_decoder = nn.Linear(latent_dim, d_model)  
         self.input_embedding = nn.Linear(input_dim, d_model)  
 
@@ -411,7 +594,7 @@ class Decoder(nn.Module):
             input = layer(input, latent)
 
 
-        self.lstm.flatten_parameters()  # Add this line
+        self.lstm.flatten_parameters()  
         input, _ = self.lstm(input)
         input = input[:, -1, :]
 
@@ -434,29 +617,29 @@ class Classifier(nn.Module):
 
         return output
     
-class LSTM_classifier(nn.Module):
-    def __init__(self, input_size, hidden_size, d_model, num_classes, dropout=0.1):
-        super(LSTM_classifier, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=1, batch_first=True)
-        self.l1 = nn.Linear(hidden_size, d_model)
-        self.dropout1 = nn.Dropout(p=dropout)
-        self.l2 = nn.Linear(d_model, d_model)
-        self.dropout2 = nn.Dropout(p=dropout)
-        self.out = nn.Linear(d_model, num_classes)
+# class LSTM_classifier(nn.Module):
+#     def __init__(self, input_size, hidden_size, d_model, num_classes, dropout=0.1):
+#         super(LSTM_classifier, self).__init__()
+#         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=1, batch_first=True)
+#         self.l1 = nn.Linear(hidden_size, d_model)
+#         self.dropout1 = nn.Dropout(p=dropout)
+#         self.l2 = nn.Linear(d_model, d_model)
+#         self.dropout2 = nn.Dropout(p=dropout)
+#         self.out = nn.Linear(d_model, num_classes)
 
-    def forward(self, x):
-        output, _ = self.lstm(x)
-        output = self.l1(output[:, -1, :])
-        output = self.dropout1(F.relu(output))
-        output = self.l2(output)
-        output = self.dropout2(F.relu(output))
-        output = self.out(output)
+#     def forward(self, x):
+#         output, _ = self.lstm(x)
+#         output = self.l1(output[:, -1, :])
+#         output = self.dropout1(F.relu(output))
+#         output = self.l2(output)
+#         output = self.dropout2(F.relu(output))
+#         output = self.out(output)
 
-        return output
+#         return output
 
 
 
-def train_basic(train_set, test_set, seq_len, classes):
+def train(m_path, train_set, test_set, seq_len, classes):
     
     input_dim = 137
     hidden_size = 128
@@ -468,7 +651,6 @@ def train_basic(train_set, test_set, seq_len, classes):
     num_decoder_layers = 5
     num_epochs = 50
 
-    m_path = f'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\lstm_classifier.pth'
     config_path = os.path.splitext(m_path)[0]+'.yaml'
 
     model_config = {
@@ -528,7 +710,6 @@ def train_basic(train_set, test_set, seq_len, classes):
             all_trues = []
 
             for seq, target in test_set:
-                print(f'Epoch {epoch}:')
 
                 # Move data to the device
                 target = target.long()
@@ -544,30 +725,6 @@ def train_basic(train_set, test_set, seq_len, classes):
                 all_preds.extend(pred_indices)
                 all_trues.extend(true_indices)
 
-            # Create a classification report using all the batches together
-            # Calculate the confusion matrix for all classes
-            conf_matrix = confusion_matrix(all_trues, all_preds)
-
-            # Loop through classes and compute specificity for each class
-            for i in range(len(classes)):
-                print(classes[i])
-
-                # Extract TP, FP, TN, and FN for the current class
-                TP = conf_matrix[i, i]  # True positives
-                FP = np.sum(conf_matrix[:, i]) - TP  # False positives
-                TN = np.sum(np.delete(conf_matrix, i, axis=0), axis=1).sum()  # True negatives
-                FN = np.sum(np.delete(conf_matrix, i, axis=1), axis=0).sum()  # False negatives
-
-                specificity = TN / (TN + FP)
-                sensitivity = TP / (TP + FN)
-                matthews_coef = (TN * TP - FN * FP) / (np.sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)))
-                nmatthews_coef = (matthews_coef + 1) / 2
-                balanced_accuracy = (sensitivity + specificity) / 2
-
-                print(f"Specificity: {specificity}")
-                print(f"Balanced Accuracy: {balanced_accuracy}")
-                print(f"NMCC: {nmatthews_coef}")
-                print()
 
             report = classification_report(all_trues, all_preds)
             print(report)
@@ -579,131 +736,238 @@ def train_basic(train_set, test_set, seq_len, classes):
         if (epoch+1)%3==0:
             torch.save(classifier, m_path)
 
-def train(train_set, test_set, seq_len, classes):
-    
-    input_dim = 137
-    hidden_size = 128
-    latent_dim = 128
-    d_model = 128
-    base_lr = 1e-5  # Minimum learning rate
-    max_lr = 1e-3   # Maximum learning rate
-    nheads = 32
-    num_encoder_layers = 10
-    num_decoder_layers = 10
-    num_epochs = 200
-    step_size = len(train_set) * 2  # Number of iterations per half cycle (twice the training dataset size)
-
-    m_path = f'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\lstm_classifier.pth'
-    config_path = os.path.splitext(m_path)[0]+'.yaml'
-
-    model_config = {
-        'seq_length':seq_len,
-        'input_dim':input_dim,
-        'hidden_size': hidden_size,
-        'd_model': d_model,
-        'learning_rate': base_lr,  # Set the initial learning rate to the base_lr
-        'model_path':m_path
-    }
-
-    with open(config_path, 'w') as file:
-        yaml.dump(model_config, file)
-
-    encoder = Encoder(input_dim, latent_dim, d_model, nheads, num_encoder_layers, seq_len*2+1)
-    decoder = Decoder(input_dim, latent_dim, len(classes), d_model, nheads, num_decoder_layers, seq_len*2+1)
-    classifier = Classifier(encoder, decoder)
-    optimizer_total = torch.optim.Adam(classifier.parameters(), lr=base_lr)  # Initialize optimizer with base_lr
-    criterion = nn.CrossEntropyLoss()
-
-    # Create the CyclicLR scheduler
-    clr_scheduler = CyclicLR(optimizer_total, base_lr=base_lr, max_lr=max_lr, step_size_up=step_size, cycle_momentum=False)
-
-    # Check if CUDA is available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
-    # Move your model to the device (GPU if available)
-    classifier.to(device)
-
-    # Training loop
-    for epoch in range(num_epochs):
-
-        for seq, target in train_set:
-
-            print(f'Epoch {epoch}:')
-
-            # Move data to the device
-            seq, target = seq.to(device), target.to(device)
-
-            # Forward pass, backward pass, and optimize
-            optimizer_total.zero_grad()
-            output = classifier(seq)
-            loss = criterion(output, target)
-
-            loss.backward()
-            optimizer_total.step()
-
-            print(f'Training Loss: {loss.item()}')
-
-            # Update learning rate using the CLR scheduler
-            clr_scheduler.step()  # This schedules the learning rate for each iteration
-
-        if (epoch+1) % 2 == 0:
-        
-            # Initialize empty lists to store predicted and true labels
-            all_preds = []
-            all_trues = []
-
-            for seq, target in test_set:
-                print(f'Epoch {epoch}:')
-
-                # Move data to the device
-                seq, target = seq.to(device), target.to(device)
-                output = classifier(seq)
-
-                # Convert predicted and target values to integers
-                pred_indices = output.argmax(dim=1).detach().cpu().numpy()
-                true_indices = target.argmax(dim=1).detach().cpu().numpy()
-
-                # Append indices to the lists
-                all_preds.extend(pred_indices)
-                all_trues.extend(true_indices)
-
-            # Create a classification report using all the batches together
-            report = classification_report(all_trues, all_preds)
-            print(report)
-
-        if (epoch+1) % 2 == 0:
-            torch.save(classifier, m_path)
 
 
+def load_data(instance_paths, cache_path, seq_len, behaviors_ordered=None, test=.2, cache=True, encoder=None):
 
-
-def load_data(instance_paths, seq_len, behaviors_ordered=None, test=.2, cache=True):
+    testing = os.path.join(cache_path, 'testing.pkl')
+    training = os.path.join(cache_path, 'training.pkl')
 
     if not cache:
         # If not caching, create and save the dataset objects
-        s_dataset = S_Features(instance_paths=instance_paths, seq_len=seq_len, behaviors_ordered=behaviors_ordered)
+        s_dataset = S_Features(instance_paths=instance_paths, seq_len=seq_len, behaviors_ordered=behaviors_ordered, encoder=encoder, test_set=test)
         s_dataset_test = S_Features_Test(s_dataset)
 
-        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\training.pkl', 'wb') as file:
+        with open(training, 'wb') as file:
             pickle.dump(s_dataset, file)
-        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\testing.pkl', 'wb') as file:
+        with open(testing, 'wb') as file:
             pickle.dump(s_dataset_test, file)
     else:
         # If caching, load the dataset objects from the pickle files
-        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\training.pkl', 'rb') as file:
+        with open(training, 'rb') as file:
             s_dataset = pickle.load(file)
-        with open('C:\\Users\\Jones-Lab\\Documents\\cbas_test\\performance\\test_sets\\testing.pkl', 'rb') as file:
+        with open(testing, 'rb') as file:
             s_dataset_test = pickle.load(file)
 
     # Create a DataLoader
     training_set = DataLoader(s_dataset, batch_size=128, shuffle=True, num_workers=8)
     testing_set = DataLoader(s_dataset_test, batch_size=128, shuffle=True, num_workers=8)
 
+    return training_set, testing_set, training, testing, s_dataset.behaviors
 
-    train_basic(training_set, testing_set, seq_len=seq_len, classes=s_dataset.behaviors)
+
+def load_postprocessors(project_config='undefined'):
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the models
+        pppath = pconfig['postprocessors']
+        ppconfig = pconfig['postprocessors_config']
+        # extract the mdoels config file
+        try:
+            with open(ppconfig, 'r') as file:
+                ppconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the models config file. Check for yaml syntax errors.')
+
+        return (pppath, ppconfig)
+    else:
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the models
+        pppath = pconfig['postprocessors']
+        ppconfig = pconfig['postprocessors_config']
+        # extract the mdoels config file
+        try:
+            with open(ppconfig, 'r') as file:
+                ppconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the models config file. Check for yaml syntax errors.')
+
+        return (pppath, ppconfig)
+    
+def load_recording_paths(project_config='undefined'):
+    # open the project config and get the test_set yaml path
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+
+    
+    else:
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+    
+    return recordings_path
+
+def load_set_paths(project_config='undefined'):
+    # open the project config and get the test_set yaml path
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        ts_path = pconfig['testsets_path']
+        trs_path = pconfig['trainingsets_path']
+
+    
+    else:
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        ts_path = pconfig['testsets_path']
+        trs_path = pconfig['trainingsets_path']
+    
+    return trs_path, ts_path
+
+
+
+
+def train_lstm(recording_names, deg_name, postprocessor_name, seq_len, classes=None, encode=True, load_from_cache=False, project_config="undefined"):
+
+    trs_path, ts_path = load_set_paths(project_config)
+    recordings_path = load_recording_paths(project_config)
+    pppath, ppconfig = load_postprocessors(project_config)
+
+    pps = list(ppconfig['models'].keys())
+
+    if postprocessor_name not in pps:
+        raise Exception('Postprocessor encoder not found, train an encoder first before training this model.')
+    
+    mconfig = ppconfig['models'][postprocessor_name]
+
+    encoder = os.path.splitext(mconfig['encoder'])[0]+'.yaml'
+
+    instance_paths = {}
+
+    for rn in recording_names:
+        if not os.path.exists(os.path.join(trs_path, rn+"_training.yaml")):
+            raise Exception(f'Instance path not found for recording {rn} could not be found.')
+        
+        recording = os.path.join(recordings_path, rn, deg_name)
+        if not os.path.exists(recording):
+            raise Exception(f'Recording deg outputs for {recording}, {deg_name} could not be found.')
+
+        instance_paths[recording] = os.path.join(trs_path, rn+"_training.yaml")
+        
+
+
+    # Load the data
+    cache_path = os.path.join(ts_path, postprocessor_name)
+    if not os.path.exists(cache_path):
+        os.mkdir(cache_path)
+
+    trainset, testset, trsl, tsl, behaviors = load_data(instance_paths, cache_path, seq_len, classes, cache=load_from_cache, encoder=encoder)
+
+    classifier_path = os.path.join(pppath, postprocessor_name, 'lstm_classifier.pth')
+
+    # Train the model
+    train(classifier_path, trainset, testset, seq_len, behaviors)
+
+
+    
+    ppconfig['models'][postprocessor_name]['training_set'] = trsl
+    ppconfig['models'][postprocessor_name]['test_set'] = tsl
+    ppconfig['models'][postprocessor_name]['classifier'] = classifier_path
+    ppconfig['models'][postprocessor_name]['behaviors'] = behaviors
+
+
+    with open(os.path.join(pppath, 'postprocessors.yaml'), 'w') as file:
+        yaml.dump(ppconfig, file)
+
+
 
 
 def infer(config_path, recording_path, videos):
