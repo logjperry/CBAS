@@ -48,6 +48,7 @@ import numpy as np
 from sklearn.metrics import auc, precision_recall_curve
 from scipy.stats import norm
 
+# An implementation of the pr_test function found here, https://github.com/bblodfon/usefun, but in Python instead of R
 def pr_test(labels, pred1, pred2, boot_n=10000, boot_stratified=True, alternative="two.sided"):
     assert set(np.unique(labels)) == {0, 1}, "Only two classes allowed: 0 and 1."
     assert len(pred1) == len(pred2), "Predictions must have the same length."
