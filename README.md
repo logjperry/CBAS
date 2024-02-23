@@ -10,7 +10,7 @@
 
 # CBAS (Circadian Behavioral Analysis Suite)
 
-### WARNING: this is a pre-release version of CBAS, if you identify an error or bug, please create an issue thread!
+### WARNING: this is a pre-release version of CBAS, if you identify an error or bug, please create an issue thread. Better documentation and juptyer notebook examples are coming soon!
 
 CBAS is a suite of tools for phenotyping complex animal behaviors. It is designed to automate classification of behaviors from active live streams of video data and provide a simple interface for visualizing and analyzing the results. CBAS currently supports automated inferencing from state-of-the-art machine learning vision models including DeepEthogram (DEG) and Deeplabcut (DLC). CBAS also includes an attentive LSTM (A-LSTM) sequence model, which is designed to be more robust and more accurate than the original DEG sequence model. 
 
@@ -132,7 +132,7 @@ The visualization and analysis module provides circadian plotting tools for visu
 
 3. <b>So much more to be announced soon:</b> Reach out to loganperry@tamu.edu for more information or to request a feature!
 
-## CBAS Sequence Model
+## CBAS Sequence Model (A-LSTM)
 
 The CBAS sequence model is an attentive LSTM sequence model for DEG feature extractor outputs. Below is a schematic of how this model works. Briefly, the model consists of two layers. The first layer is an encoder layer for cleaning, condensing, and combining the 1024 spatial and flow features that DEG outputs. The second layer is a classification layer that takes as input a sequence of encoded outputs from the first layer and uses them to classify frame sequences into behavior classes.
 
@@ -149,7 +149,7 @@ The CBAS sequence model is an attentive LSTM sequence model for DEG feature extr
 
 # Acknowledgements
 
-
+This work was supported by National Institutes of Health Grant R35GM151020 (J.R.J.) and a Research Grant from the Whitehall Foundation (J.R.J.).
 
 # License
 
