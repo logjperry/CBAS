@@ -12,7 +12,7 @@
 
 ### WARNING: this is a pre-release version of CBAS, if you identify an error or bug, please create an issue thread. Better documentation and juptyer notebook examples are coming soon!
 
-Visit our slack channel for help and to stay up to date with the latest CBAS news! [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/slack-ivi5940/shared_invite/zt-2ddpavw1h-o66Jt0Us5QIiXtjvzNRzEA)
+Visit our [slack channel](https://join.slack.com/t/slack-ivi5940/shared_invite/zt-2ddpavw1h-o66Jt0Us5QIiXtjvzNRzEA) for help and to stay up to date with the latest CBAS news! 
 
 CBAS is a suite of tools for phenotyping complex animal behaviors. It is designed to automate classification of behaviors from active live streams of video data and provide a simple interface for visualizing and analyzing the results. CBAS currently supports automated inferencing from state-of-the-art machine learning vision models including DeepEthogram (DEG) and Deeplabcut (DLC). CBAS also includes an attentive LSTM (A-LSTM) sequence model, which is designed to be more robust and more accurate than the original DEG sequence model. 
 
