@@ -34,6 +34,7 @@ from matplotlib import cm
 import ttkbootstrap as ttk
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from datetime import datetime
 
 theme = 'superhero'
 
@@ -1416,7 +1417,7 @@ class TransitionRasterDif:
 
 class Ethograms:
 
-    def __init__(self, window, window_title, behaviors, paths, groups, starts, lightcycles, maxdays, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800):
+    def __init__(self, window, window_title, behaviors, paths, groups, starts, lightcycles, maxdays, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800, fig_path=None):
         self.window = window
         self.window.title(window_title)
 
@@ -1434,12 +1435,13 @@ class Ethograms:
         self.lightcycles = lightcycles
         self.maxdays = maxdays
 
-        self.file = 'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\ethogram.png'
 
         self.timeseries(paths=paths, behaviors=behaviors, groups=groups, lightcycles=lightcycles)
 
         self.group_names.sort()
         self.group_name = [self.group_names[0]]
+
+        self.fig_path = fig_path
 
 
 
@@ -1487,6 +1489,14 @@ class Ethograms:
         ctx.scale(width, height)
         
         self.draw_actograms(ctx, self.group_name)
+
+        
+        name = ""
+        for g in self.group_name:
+            name+=str(g) 
+            name+='_'
+
+        self.file = os.path.join(self.fig_path, name+'ethogram.png')
         
         surface.write_to_png(self.file)
 
@@ -2067,6 +2077,7 @@ def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=N
 
         # grabbing the locations of the recordings
         recordings_path = pconfig['recordings_path']
+        figures_path = pconfig['figures_path']
 
     
     else:
@@ -2085,6 +2096,7 @@ def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=N
 
         # grabbing the locations of the recordings
         recordings_path = pconfig['recordings_path']
+        figures_path = pconfig['figures_path']
 
 
     data = []
@@ -2110,8 +2122,12 @@ def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=N
 
     paths = [data[i][0] for i in range(len(data))]
 
+    fig_path = os.path.join(figures_path, 'ethograms_'+datetime.utcnow().strftime('%Y%m%d%H%M%S'))
+    if not os.path.exists(fig_path):
+        os.mkdir(fig_path)
+
     root = ttk.Window(themename=theme)
-    tg = Ethograms(root, 'Ethograms', behaviors=behaviors, paths=paths, groups=groups, starts=starts, lightcycles=lightcycles, maxdays=maxdays)
+    tg = Ethograms(root, 'Ethograms', behaviors=behaviors, paths=paths, groups=groups, starts=starts, lightcycles=lightcycles, maxdays=maxdays, fig_path=fig_path)
 
 ##### UNDER CONSTRUCTION #####
 

@@ -616,26 +616,7 @@ class Classifier(nn.Module):
         output = self.decoder(src, latent)
 
         return output
-    
-# class LSTM_classifier(nn.Module):
-#     def __init__(self, input_size, hidden_size, d_model, num_classes, dropout=0.1):
-#         super(LSTM_classifier, self).__init__()
-#         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=1, batch_first=True)
-#         self.l1 = nn.Linear(hidden_size, d_model)
-#         self.dropout1 = nn.Dropout(p=dropout)
-#         self.l2 = nn.Linear(d_model, d_model)
-#         self.dropout2 = nn.Dropout(p=dropout)
-#         self.out = nn.Linear(d_model, num_classes)
 
-#     def forward(self, x):
-#         output, _ = self.lstm(x)
-#         output = self.l1(output[:, -1, :])
-#         output = self.dropout1(F.relu(output))
-#         output = self.l2(output)
-#         output = self.dropout2(F.relu(output))
-#         output = self.out(output)
-
-#         return output
 
 
 
