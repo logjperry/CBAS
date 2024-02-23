@@ -1,10 +1,11 @@
-import deeplabcut
+
 import os
 import sys 
 import yaml
 import time
 
 def inference(config_path, name, video_path, storage_path):
+    import deeplabcut
 
     if video_path!='' and storage_path!='':
 

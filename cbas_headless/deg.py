@@ -16,16 +16,12 @@ import json
 from datetime import datetime
 import yaml
 
-import deepethogram
-from platforms import modified_deepethogram
-from platforms.modified_deepethogram import projects
-from deepethogram import utils
-from platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
-from platforms.modified_deepethogram.feature_extractor import inference as fei
 
 
 
 class headless_deg:
+    
+    
 
     def __init__(self, project_head: Union[str, os.PathLike]):
         self.cfg = None 
@@ -51,6 +47,12 @@ class headless_deg:
         self.initialize_project(project_head)
 
     def initialize_project(self, directory: Union[str, os.PathLike]):
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
 
         if len(directory) == 0:
             return
@@ -80,6 +82,14 @@ class headless_deg:
         self.get_selected_models()
 
     def get_trained_models(self):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         trained_models = projects.get_weights_from_model_path(self.model_path)
         self.get_default_archs()
         trained_dict = {}
@@ -105,6 +115,13 @@ class headless_deg:
 
     # initializes the default architectures of the models
     def get_default_archs(self):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
         
         if 'preset' in self.cfg:
             preset = self.cfg.preset
@@ -136,6 +153,13 @@ class headless_deg:
             self.initialize_video(filename)
 
     def initialize_video(self, videofile: Union[str, os.PathLike]):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
         
         try: 
 
@@ -167,6 +191,13 @@ class headless_deg:
             return
         
     def get_selected_models(self, model_type: str = None):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
 
         flow_model = None
         fe_model = None
@@ -205,6 +236,14 @@ class headless_deg:
         return models
     
     def has_outputfile(records: dict) -> list:
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         """ Convenience function for finding output files in a dictionary of records"""
         keys, has_outputs = [], []
         # check to see which records have outputfiles
@@ -214,6 +253,15 @@ class headless_deg:
         return has_outputs
         
     def generate_sequence_inference_args(self):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
+
         records = projects.get_records_from_datadir(self.data_path)
         keys = list(records.keys())
         outputs = projects.has_outputfile(records)
@@ -268,6 +316,13 @@ class headless_deg:
 
     def sequence_infer(self):
 
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         if self.noseq:
             return
 
@@ -285,6 +340,14 @@ class headless_deg:
         del self.inference_pipe
 
     def generate_featureextractor_inference_args(self):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         records = projects.get_records_from_datadir(self.data_path)
         keys, no_outputs = [], []
         for key, record in records.items():
@@ -320,6 +383,14 @@ class headless_deg:
         return args
            
     def feature_infer(self, video_list):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         args = self.generate_featureextractor_inference_args()
         
         if args==None:
@@ -356,6 +427,13 @@ class headless_deg:
                 batch_size=self.fe[15])
             
     def load_predictions(self, video_list):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
     
         dp = self.data_path
         filenames = []
@@ -378,6 +456,13 @@ class headless_deg:
             self.export_predictions()
             
     def import_outputfile(self, outputfile: Union[str, os.PathLike], latent_name=None):
+
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
 
         if outputfile is None:
             return
@@ -412,6 +497,13 @@ class headless_deg:
         
     def export_predictions(self):
 
+        import deepethogram
+        from cbas_headless.platforms import modified_deepethogram
+        from cbas_headless.platforms.modified_deepethogram import projects
+        from deepethogram import utils
+        from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+        from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
+
         array = self.estimated_labels       
         df = pd.DataFrame(data=array, columns=self.cfg.project.class_names)      
         fname, _ = os.path.splitext(self.videofile)    
@@ -420,6 +512,13 @@ class headless_deg:
 
 
 def inference(hl_deg, name, video_path, postprocessor, postprocessor_path):
+
+    import deepethogram
+    from cbas_headless.platforms import modified_deepethogram
+    from cbas_headless.platforms.modified_deepethogram import projects
+    from deepethogram import utils
+    from cbas_headless.platforms.modified_deepethogram.postprocessing import get_postprocessor_from_cfg
+    from cbas_headless.platforms.modified_deepethogram.feature_extractor import inference as fei
 
     
     from postprocessor import lstm_classifier

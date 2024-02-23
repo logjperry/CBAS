@@ -38,373 +38,1016 @@ from datetime import datetime
 
 theme = 'superhero'
 
-# class TransitionGraph:
+class Ethograms:
 
-#     def __init__(self, window, window_title, behaviors, path, color_list=None, width=800, height=800):
-#         self.window = window
-#         self.window.title(window_title)
+    def __init__(self, window, window_title, behaviors, paths, groups, starts, lightcycles, maxdays, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800, fig_path=None):
+        self.window = window
+        self.window.title(window_title)
 
-#         self.behaviors = behaviors
+        self.behaviors = behaviors
 
-#         self.width = width 
-#         self.height = height
+        self.width = width 
+        self.height = height
 
-#         self.path = path
+        self.paths = paths
 
-#         self.padding = 5
-#         self.node_size = 50
+        self.groups = groups
 
-#         self.bin_size = 1 
-#         self.jump_size = 1
+        self.starts = starts
 
-#         self.file = 'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\graph.png'
-
-#         self.transitions(behaviors, path)
-
-#         self.frame = tk.Frame(self.window)
+        self.lightcycles = lightcycles
+        self.maxdays = maxdays
 
 
-#         self.color_list = [(255,97,3),(255,255,0),(65,105,225),(255,0,0),(255,20,147),(132,112,255),(59,59,59),(50,205,50),(138,54,15)]
+        self.timeseries(paths=paths, behaviors=behaviors, groups=groups, lightcycles=lightcycles)
+
+        self.group_names.sort()
+        self.group_name = [self.group_names[0]]
+
+        self.fig_path = fig_path
 
 
-#         self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
-#         self.canvas.grid(column=0, row=0)
 
-#         self.frame.pack(anchor=tk.CENTER, pady=5, padx=5)
-#         self.bin = tk.Scale(window, from_=1, to=20, orient=tk.HORIZONTAL)
-#         self.bin.pack()
-#         self.jump = tk.Scale(window, from_=1, to=120, orient=tk.HORIZONTAL)
-#         self.jump.pack()
-#         tk.Button(window, text='Show', command=self.update).pack(pady=5)
+        self.frame = tk.Frame(self.window)
+
+        self.right = tk.Frame(self.window)
+
+        self.color_list = color_list
 
 
-#         self.draw()
-#         self.load_image()
+        self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
+        self.canvas.grid(column=0, row=0)
 
         
-#         self.window.mainloop()
+        self.frame.pack(side=tk.LEFT, pady=5, padx=5)
 
-#     def draw(self):
-#         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
-#         ctx = cairo.Context(surface)
-
-#         width = self.width
-#         height = self.height
-
-#         ctx.scale(width, height)
-
-#         ctx.rectangle(0,0,1,1)
-#         ctx.set_source_rgba(0, 0, 0, 1)
-#         ctx.fill()
         
-#         self.draw_graph(ctx, .3, self.behaviors, self.color_list, self.matrix)
-#         self.draw_matrix(ctx, .75, self.behaviors, self.color_list, self.matrix)
+        options = self.group_names
+        self.label = tk.Label(self.right, text = "Camera Groups", font=('TkDefaultFixed', 10)).pack(side=tk.TOP, anchor='sw', pady=5, padx=5)
+        self.listbox = tk.Listbox(self.right, selectmode = "multiple")
+        self.listbox.pack(pady=5, padx=5)
         
-#         surface.write_to_png(self.file)
+        for option in options:
+            self.listbox.insert(tk.END, option)
+        
+        self.button = tk.Button(self.right, text="Replot", command=self.update, font=('TkDefaultFixed', 10), relief='flat', autostyle=False).pack(side=tk.BOTTOM, anchor='center', pady=5, padx=5)
 
-#     def load_image(self):
-#         img = ImageTk.PhotoImage(Image.open(self.file))
-#         self.img = img
-#         self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
-
-#     def draw_graph(self, ctx, y, behaviors, colors, matrix):
-
-
-#         node_size = .1
-
-#         ex_padding = .05
-#         in_padding = .02
-#         node_size = (1-2*ex_padding - (len(behaviors)-1) * in_padding)/len(behaviors)
-
-#         if node_size<0:
-#             raise Exception('Padding too large for number of behaviors.')
+        self.right.pack(side=tk.RIGHT, pady=5, padx=5)
 
 
 
-#         cx = ex_padding + node_size/2
-#         cy = y
+        self.draw()
+        self.load_image()
 
-#         roundness = .5
-#         rc = (1-roundness)
+        
+        self.window.mainloop()
 
-#         Ialpha = .7
-#         Oalpha = .5
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
+        ctx = cairo.Context(surface)
 
-#         ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        width = self.width
+        height = self.height
 
-#         for i, b in enumerate(behaviors):
+        ctx.scale(width, height)
+        
+        self.draw_actograms(ctx, self.group_name)
 
-#             ctx.set_line_width(node_size*.1)
-#             c = colors[i]
+        
+        name = ""
+        for g in self.group_name:
+            name+=str(g) 
+            name+='_'
 
-#             xl = cx-node_size/2
-#             xr = cx+node_size/2
-#             yt = cy-node_size/2
-#             yb = cy+node_size/2
+        self.file = os.path.join(self.fig_path, name+'ethogram.png')
+        
+        surface.write_to_png(self.file)
 
-#             ctx.move_to(xl, cy+node_size/2*rc)
-#             ctx.line_to(xl, cy-node_size/2*rc)
-#             ctx.curve_to(xl, cy-node_size/2*rc, xl, yt, cx-node_size/2*rc, yt)
-#             ctx.line_to(cx+node_size/2*rc, yt)
-#             ctx.curve_to(cx+node_size/2*rc, yt, xr, yt, xr, cy-node_size/2*rc)
-#             ctx.line_to(xr, cy+node_size/2*rc)
-#             ctx.curve_to(xr, cy+node_size/2*rc, xr, yb, cx+node_size/2*rc, yb)
-#             ctx.line_to(cx-node_size/2*rc, yb)
-#             ctx.curve_to(cx-node_size/2*rc, yb, xl, yb, xl, cy+node_size/2*rc)
+    def load_image(self):
+        img = ImageTk.PhotoImage(Image.open(self.file))
+        self.img = img
+
+        self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
+
+    def draw_actograms(self, ctx, groups):
+
+        print('Setting up all actograms...')
+
+        num_behaviors = len(self.behaviors)
+        num_wide = math.ceil(math.sqrt(num_behaviors))
+        num_tall = math.ceil(num_behaviors/num_wide)
+
+        padding = .02 
+
+        actogram_width = (1 - 2*padding - (num_wide-1)*padding)/(num_wide)
+        actogram_height = (1 - 2*padding - (num_tall-1)*padding)/(num_tall)
+
+        cx = padding
+        cy = padding
+        i = 0
+
+        for b in self.behaviors:
+            h = int(i/num_wide)
+            w = i%num_wide
+
+            cx = (actogram_width)*w + (padding)*(w+1)
+            cy = (actogram_height)*h + (padding)*(h+1)
 
 
-#             ctx.close_path()
+            self.draw_actogram(ctx, cx, cy, actogram_width, actogram_height, padding, groups, b, self.color_list[self.behaviors.index(b)])
+            i+=1
 
-#             ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+    def draw_actogram(self, ctx, tlx, tly, width, height, padding, groups, behavior, color, mode='light'):
+        
+        ctx.set_line_width(.005)
 
-#             ctx.fill_preserve()
+        if mode!='light':
+            ctx.rectangle(tlx - padding/4,tly - padding/4,width + padding/2,height + padding/2)
+            ctx.set_source_rgba(.1, .1, .1, 1)
+            ctx.fill()
+        else:
+            ctx.rectangle(tlx - padding/4,tly - padding/4,width + padding/2,height + padding/2)
+            ctx.set_source_rgba(1, 1, 1, 1)
+            ctx.fill()
 
-#             ctx.set_source_rgba(0, 0, 0, Oalpha)
-#             ctx.stroke()
 
-#             ctx.select_font_face("Courier", cairo.FONT_SLANT_NORMAL)
-#             ctx.set_font_size(node_size*.3)
+        print(f'Drawing {behavior} actogram...')
+        opacity = 1/len(groups)
+        
+        for z in range(len(groups)):
+
+            first = False 
+            last = False 
+            group = groups[z]
+
+            if z==0:
+                first = True
+            if z==len(groups)-1:
+                last = True
+
+            total_data = []
+            days = []
+            cycles = []
+            for p in range(len(self.timeseries_data[group])):
+                data = self.timeseries_data[group][p]['data'][behavior]
+                total_data.append(data)
+                days.append(self.timeseries_data[group][p]['length'])
+                cycles.append(self.timeseries_data[group][p]['light'])
+
+            total_days = np.sum(days)
+            if total_days>self.maxdays:
+                total_days = self.maxdays
+
+
+            day_height = height/total_days
             
-#             (x, y, width, height, dx, dy) = ctx.text_extents(b)
+            bin_width = 1/48 * self.bin_size/36000
+            ds = 0
+            for i in range(len(days)):
+                
+                data = total_data[:][i]
 
-#             ctx.move_to(cx - width/2, cy + height/4)    
-#             ctx.set_source_rgba(0, 0, 0, 1)
-#             ctx.show_text(b)
+                times = data[0]
+                ts = data[1]
+
+                expdays = days[i]
+
+                end = ds + expdays
+
+                if end>self.maxdays:
+                    end = self.maxdays
+                
+                for d in range(int(ds), int(end)):
+
+                    by = tly+(d+1)*day_height
+
+                    d1 = d-ds
+
+                    valid = np.logical_and(times>(d1*24),times<=((d1+2)*24))
+
+                    if d1%2!=0:
+                        adj_times = times[valid] + 24
+                    else:
+                        adj_times = times[valid]
+
+                    adj_times = adj_times%48
+
+                    series = ts[valid]
+
+                    # normalize the series
+                    series = np.array(series)
+                    series = series/np.max(series)
+
+                    series = series*.90
+
+                    LD = True
+                    if cycles is not None:
+                        LD = cycles[i]
+
+                    if LD and first:
+                        ctx.set_source_rgb(223/255,223/255,223/255)
+                        ctx.rectangle(tlx+0/48*width, by-day_height, 6/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+18/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+42/48*width, by-day_height, 6/48*width, day_height)
+                        ctx.fill()
+
+                        ctx.set_source_rgb(255/255, 239/255, 191/255)
+                        ctx.rectangle(tlx+6/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+30/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+
+                    elif first:
+                        ctx.set_source_rgb(223/255,223/255,223/255)
+                        ctx.rectangle(tlx+0/48*width, by-day_height, 6/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+18/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+42/48*width, by-day_height, 6/48*width, day_height)
+                        ctx.fill()
+
+                        ctx.set_source_rgb(246/255, 246/255, 246/255)
+                        ctx.rectangle(tlx+6/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+                        ctx.rectangle(tlx+30/48*width, by-day_height, 12/48*width, day_height)
+                        ctx.fill()
+                    
 
 
-#             # draw the edges
-#             tcx = cx 
-#             tcy = cy 
+                    for t in range(len(adj_times)):
+                        timepoint = adj_times[t]
+                        value = series[t]
+                        
+                        a_time = timepoint/48
+                        
+                        ctx.rectangle(tlx+a_time*width,by-value*day_height,bin_width*width,value*day_height)
+                        ctx.set_source_rgba(color[0]/255, color[1]/255, color[2]/255, opacity*2)
+                        ctx.fill()
 
-#             edge_padding = node_size*.1
 
-#             edge_step = (node_size-2*edge_padding)/(len(behaviors)-1)
+                ds += expdays
+
+            if last:
+                ds = 0
+                for i in range(len(days)):
+
+                    expdays = days[i]
+                    end = ds + expdays
+
+                    if end>self.maxdays:
+                        end = self.maxdays
+                    
+                    for d in range(int(ds), int(ds+expdays)):
+
+                        by = tly+(d+1)*day_height
+
+                        ctx.set_line_width(.002)
+                        ctx.set_source_rgb(0, 0, 0)
+                        ctx.move_to(tlx, by)
+                        ctx.line_to(tlx+48/48*width, by)
+                        ctx.stroke()
+
+                    
+                    
+                    ds += expdays
+        
+    def timeseries(self, paths, groups, lightcycles, behaviors):
+
+        # paths is an array of paths to recording folders, it is assumed that the paths are in order of gluing
+        
+        # groups is an array of dictionaries of camera names for each recording that are to be glued together
+        # [{0:'cam1', 1:'cam1'}] means that the first camera from the first recording path is going to be glued to the first camera of the second recording
+        
+        # lightcycles is a boolean array of whether the recording is in LD or not (True=LD, False=DD)
+        # behaviors is an array of behaviors to plot
+
+        print('Loading the timeseries data...')
+
+        if groups is None:
+            numpaths = len(paths)
+            path = paths[0]  
+
+            f = []
+            for (dirpath, dirnames, filenames) in os.walk(path):
+                f.extend(dirnames)
+                break
+            
+            cameras = {}
+            camera_names = []
+
+            for file in f:
+                try:
+                    name = file.split('_')[1]
+                except:
+                    continue
+
+                if name not in camera_names:
+                    camera_names.append(name)
+                    cameras[name] = []
+            
+            groups = [{p:c for p in range(numpaths)} for c in camera_names]
+
+
             
 
-#             for i1, b1 in enumerate(behaviors):
+        # for path in paths:
 
-#                 dist = np.abs(i1-i)/len(behaviors)
+        #     f = []
+        #     for (dirpath, dirnames, filenames) in os.walk(path):
+        #         f.extend(filenames)
+        #         break
+            
+        #     cameras = {}
+        #     camera_names = []
 
-#                 adjcx = (node_size + in_padding)*dist*len(behaviors)
-#                 adjcx1 = -(node_size + in_padding)*dist*len(behaviors)
+        #     for file in f:
+        #         try:
+        #             name = file.split('_')[1]
+        #         except:
+        #             continue
 
-#                 stepup = .13
+        #         if name in camera_names:
+        #             cameras[name].append(file)
+        #         else:
+        #             camera_names.append(name)
+        #             cameras[name] = [file]
+        path = paths[0]   
+
+        total_group_data = {}
+        group_names = []
+
+        ind = 0
+        for arr in groups:
+            total_group_data[ind] = None
+            group_names.append(ind)
+            ind+=1
+
+        ind = 0
+        for path in paths:
 
 
-#                 # set the edge line weight to be smaller so that there is "padding"
+            exp = os.path.split(path)[1]
 
-#                 if b!=b1 and i1>i:
+            f = []
 
-#                     weight = matrix[i,i1]
+            for (dirpath, dirnames, filenames) in os.walk(path):
+                f.extend(dirnames)
+                break
 
-#                     if weight<.2:
-#                         continue
 
-#                     ctx.set_line_width(edge_step*weight)
+            deg = True 
 
-#                     ctx.move_to(xl+i1*edge_step+edge_padding, yt-edge_padding)
 
-#                     # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
-#                     # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+            for fold in f:
+                if os.path.exists(os.path.join(path, f[0], f[0]+'_outputs_inferences.csv')):
+                    deg = False
 
-#                     mx = (xl+i1*edge_step+edge_padding+(xl+adjcx)+i*edge_step+edge_padding)/2
+            
 
-#                     ctx.curve_to(xl+i1*edge_step+edge_padding, yt-edge_padding, xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist),mx, yt-edge_padding-stepup*(dist))
-#                     ctx.curve_to(mx, yt-edge_padding-stepup*(dist), (xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist),(xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+            if not deg:
+                files = {fold:os.path.join(path, fold, fold+'_outputs_inferences.csv') for fold in f}
+            elif deg:
+                files = {fold:os.path.join(path, fold, fold+'_predictions.csv') for fold in f}
+            else:
+                raise Exception('No valid files found in '+path)
+
+
+            for file in files.keys():
+                try:
+                    name = file.split('_')[1]
+                except:
+                    continue
+
+                if name in camera_names:
+                    cameras[name].append(files[file])
+                else:
+                    camera_names.append(name)
+                    cameras[name] = [files[file]]
+
+            video_size = 18000
+            bin_size = 18000
+            self.bin_size = bin_size
+
+            vidsperhour = 36000/video_size
+
+            camera_data = {}
+            timeseries_data = {}
+
+            for g in camera_names:
+                time_data = {}
+                for file in cameras[g]:
+                    df = pd.read_csv(file)
+                    df = df.to_numpy()[1:,1:]
+
+                    time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])] = []
+
+                    for r in range(len(df[0,:])):
+                        bins = []
+                        
+                        for b in range(0,len(df),bin_size):
+                            end = b+bin_size
+                            if end>len(df):
+                                end = len(df)
+                            
+                            col = df[b:end, r]
+                            bins.append(np.sum(col))
+
+                        bins = np.array(bins)
+                        if len(bins)>video_size/bin_size:
+                            bins = bins[:int(video_size/bin_size)]
+                        elif len(bins)<video_size/bin_size:
+                            n = video_size/bin_size - len(bins)
+                            temp_bins = []
+                            temp_bins.extend(bins.tolist())
+                            for i in range(int(n)):
+                                temp_bins.append(0)
+                            
+                            bins = np.array(temp_bins)
+
+                        time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])].append(bins)
+
+
+                
+                camera_data[g] = time_data
+
+                num_bins = len(camera_data[camera_names[0]][0][0])
+            
+                days = int(np.ceil(len(camera_data[camera_names[0]])/(vidsperhour*24)))
+
+                timeseries_data[g] = {b:None for b in behaviors}
+
+                for i in np.arange(0,days,1):
                     
-#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-#                     ctx.stroke()
+                    indices = range(int(i*num_bins*(vidsperhour*24)), int((i+1)*num_bins*(vidsperhour*24)),1)
 
-#                     ctx.set_line_width(edge_step*2*weight)
-#                     ctx.move_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
-#                     ctx.line_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
-#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-#                     ctx.stroke()
+                    valid_indices = []
+                    for id in indices:
+                        t = int(id)
+                        tp = int(t/num_bins)
+                        stp = int(t%num_bins)
 
-#                 elif b!=b1:
-#                     weight = matrix[i,i1]
-
-#                     if weight<.2:
-#                         continue
-
-#                     ctx.set_line_width(edge_step*weight)
-
-#                     ctx.move_to(xl+i1*edge_step+edge_padding, yb+edge_padding)
-
-#                     # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
-#                     # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
-
-#                     mx = (xl+i*edge_step+edge_padding+(xl+adjcx1)+i1*edge_step+edge_padding)/2
-
-#                     ctx.curve_to(xl+i1*edge_step+edge_padding, yb+edge_padding, xl+i1*edge_step+edge_padding, yb+edge_padding+stepup*(dist),mx, yb+edge_padding+stepup*(dist))
-#                     ctx.curve_to(mx, yb+edge_padding+stepup*(dist), (xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding+stepup*(dist),(xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
-
-
-#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-#                     ctx.stroke()
+                        if tp>=len(time_data):
+                            continue
+                        else:
+                            valid_indices.append(id)
                     
-#                     ctx.set_line_width(edge_step*2*weight)
-#                     ctx.move_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
-#                     ctx.line_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
-#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-#                     ctx.stroke()
+                    indices = np.array(indices)
 
-#             # adjust the center x 
-#             cx += node_size + in_padding
+                    data = np.zeros((len(camera_data[camera_names[0]][0]), len(indices)))
+
+                    time_data = camera_data[g]
+
+                    for id in indices:
+                        t = int(id)
+                        tp = int(t/num_bins)
+                        stp = int(t%num_bins)
+
+                        if tp>=len(time_data):
+                            continue
+
+                        data_ind = int(id-i*num_bins*(vidsperhour*24))
+
+                        for r in range(len(camera_data[camera_names[0]][0])):
+
+                            try:
+                                data[r,data_ind] = time_data[tp][r][stp]
+                            except:
+                                data[r,data_ind] = 0
+
+
+
+                    for b in range(len(behaviors)):
+
+                        ts = data[b, :]
+                        times = np.arange(len(ts)) * (24) / ((video_size/bin_size) * (vidsperhour*24))
+                        times += self.starts[ind]
+
+                       
+                        if timeseries_data[g][behaviors[b]] is None:
+                            timeseries_data[g][behaviors[b]] = (times, ts)
+
+                        else:
+                            
+                            old_data = timeseries_data[g][behaviors[b]]
+
+                            newtimes = []
+                            for t in old_data[0]:
+                                newtimes.append(t)
+                            for t in times:
+                                newtimes.append(t+i*24)
+                            newtimes = np.array(newtimes)
+
+                            newts = []
+                            for t in old_data[1]:
+                                newts.append(t)
+                            for t in ts:
+                                newts.append(t)
+                            newts = np.array(newts)
+
+
+                            timeseries_data[g][behaviors[b]] = (newtimes, newts)
+
+            recDays = int(np.ceil(len(camera_data[camera_names[0]])/(vidsperhour*24)))
+
+            # loop over the groups
+            for g in group_names:
+                incl = groups[g]
+
+                # get the camera for this group
+                try:
+                    recCam = incl[ind]
+                except:
+                    print(f'No data for recording {ind} and group {incl}.')
+                    continue
+
+                recStart = self.starts[ind]
+                recLight = True
+                if lightcycles is not None:
+                    recLight = lightcycles[ind]
+
+                if total_group_data[g] is None:
+                    total_group_data[g] = [{'exp':os.path.split(path)[1],'length':recDays, 'start':recStart, 'light':recLight, 'data':timeseries_data[recCam]}]
+                else:
+                    total_group_data[g].append({'exp':os.path.split(path)[1],'length':recDays, 'start':recStart, 'light':recLight, 'data':timeseries_data[recCam]})
+                
+
+            # increase ind to new path
+            ind+=1
+            
+
+
+
+        self.group_names = group_names
+
+        self.timeseries_data = total_group_data
+
+    def update(self):
+        
+        selections = self.listbox.curselection()
+
+        if len(selections)==0:
+            return
+        
+        self.group_name = [self.group_names[g] for g in selections]
+        
+        self.draw()
+        self.load_image()
+     
+def remove_leading_zeros(num):
+    for i in range(0,len(num)):
+        if num[i]!='0':
+            return int(num[i:])  
+    return 0
+
+def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=None, maxdays=50, groups=None, name=None, project_config='undefined'):
+
+    # open the project config and get the test_set yaml path
+    if project_config=='undefined':
+        # assume that the user is located in an active project
+        user_dir = os.getcwd()
+
+        # make sure user is located within the main directory of a project
+        project_config = os.path.join(user_dir, 'project_config.yaml')
+
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
+        
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
+
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+        figures_path = pconfig['figures_path']
+
     
-#     def draw_matrix(self, ctx, y, behaviors, colors, matrix):
+    else:
 
-#         map = sns.color_palette("viridis", as_cmap=True).colors
-#         map_len = len(map)
-
-#         width = self.width
-#         height = self.height
-
-#         node_size = .04
-
-#         padding = 0.003 
-
-#         size = node_size*len(behaviors)+padding*(len(behaviors)-1)
-
-#         cx = .5+node_size/2+padding
-
-#         xl = cx - size/2
-#         xr = cx + size/2
-
-#         yt = y - size/2
-#         yb = y + size/2
-
-#         border_size = padding
-#         ctx.set_line_width(border_size)
-
-#         # ctx.rectangle(xl-padding,yt-padding,size+padding*2,size+padding*2)
-#         # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-#         # ctx.fill()
-#         # ctx.stroke()
-
-#         for c in range(len(behaviors)):
-#             cl = colors[c]
-#             txl = xl-padding + c*(node_size+padding)
-#             tyl = yt-padding*2.5-node_size
-
-#             # ctx.rectangle(txl,tyl,node_size+padding*2,node_size+padding*3)
-#             # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-#             # ctx.fill()
-#             # ctx.stroke()
-
-            
-#             # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-#             # ctx.set_source_rgba(1, 1, 1, 1)
-#             # ctx.fill()
-#             # ctx.stroke()
-
-            
-#             ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-#             ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
-#             ctx.fill_preserve()
-#             ctx.set_source_rgba(0, 0, 0, .5)
-#             ctx.stroke()
-
-#         for c in range(len(behaviors)):
-#             cl = colors[c]
-#             txl = xl-padding -padding*1.5-node_size
-#             tyl = yt-padding + c*(node_size+padding)
-
-#             # ctx.rectangle(txl,tyl,node_size+padding*3,node_size+padding*2)
-#             # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-#             # ctx.fill()
-#             # ctx.stroke()
-
-            
-#             # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-#             # ctx.set_source_rgba(1, 1, 1, 1)
-#             # ctx.fill()
-#             # ctx.stroke()
-
-            
-#             ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-#             ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
-#             ctx.fill_preserve()
-#             ctx.set_source_rgba(0, 0, 0, .5)
-#             ctx.stroke()
-
-#         i = 0
-#         for x in np.arange(0, size, node_size+padding):
-#             j = 0
-#             for y in np.arange(0, size, node_size+padding):
-#                 weight = matrix[j,i]
-#                 c = colors[j]
-#                 # ctx.rectangle(x+xl,y+yt,node_size,node_size)
-#                 # ctx.set_source_rgba(0, 0, 0, .5)
-#                 # ctx.fill()
-#                 # ctx.stroke()
-
-#                 ctx.rectangle(x+xl,y+yt,node_size,node_size)
-#                 ctx.set_source_rgba(map[int(weight*map_len)][0],map[int(weight*map_len)][1],map[int(weight*map_len)][2], .7)
-#                 ctx.fill()
-#                 ctx.stroke()
-#                 j+=1
-#             i+=1
-
-#     def transitions(self, behaviors, path):
-
-#         df = pd.read_csv(path)
-#         df = df.to_numpy()[1:,1:]
-
-#         matrix = np.zeros((len(behaviors), len(behaviors)))
-
-#         linear = []
-
-#         for i in range(len(df)):
-#             linear.append(np.argmax(df[i]))
+        if os.path.exists(project_config):
+            print('Project found.')
+        else:
+            raise Exception('Project not found.')
         
-#         # calc the transitions
-#         linear = np.array(linear)
-#         bin_size = self.bin_size
+        # extract the project_config file
+        try:
+            with open(project_config, 'r') as file:
+                pconfig = yaml.safe_load(file)
+        except:
+            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
 
-#         jump_size = self.jump_size
+        # grabbing the locations of the recordings
+        recordings_path = pconfig['recordings_path']
+        figures_path = pconfig['figures_path']
 
-#         binned = []
 
-#         for i in range(0,len(linear),bin_size):
+    data = []
+    for r in recording_names:
+        recording_path = os.path.join(recordings_path, r,model_name)
+        recording_config = os.path.join(recordings_path, r, 'details.yaml')
 
-#             end = i+bin_size
-#             if end>len(linear):
-#                 end = len(linear)
-
-#             chunk = linear[i:end]
-#             counts = []
-#             for b in range(len(behaviors)):
-#                 counts.append(np.sum(chunk==b))
-#             if counts[np.argmax(counts)]==0:
-#                 binned.append(-1)
-#             else:
-#                 binned.append(np.argmax(counts))
+        with open(recording_config, 'r') as file:
+            rconfig = yaml.safe_load(file)
         
-#         instances = [0 for b in behaviors]
-#         for i in range(len(binned)):
-#             instances[binned[i]] += 1
+        if model_name in rconfig['cameras_per_model'].keys() and len(rconfig['cameras_per_model'][model_name])>0:
+            try:
+                data.append((recording_path, float(rconfig['start_time'].split(':')[0]) + float(rconfig['start_time'].split(':')[1])))
+            except:
+                data.append((recording_path, 0))
 
-#         for b in range(len(behaviors)):
-#             next = [0 for b1 in behaviors]
-#             for i in range(len(binned)-jump_size):
-#                 if b==binned[i]:
-#                     next[binned[i+jump_size]] += 1
-#             next = np.array(next)
-#             next = next/instances[b]
 
-#             matrix[b,:] = next
+    if starts is None:
+        starts = [data[i][1] for i in range(len(data))]
+
+    if name is None:
+        name = model_name+'_'+recording_names[0]
+
+    paths = [data[i][0] for i in range(len(data))]
+
+    fig_path = os.path.join(figures_path, 'ethograms_'+datetime.utcnow().strftime('%Y%m%d%H%M%S'))
+    if not os.path.exists(fig_path):
+        os.mkdir(fig_path)
+
+    root = ttk.Window(themename=theme)
+    tg = Ethograms(root, 'Ethograms', behaviors=behaviors, paths=paths, groups=groups, starts=starts, lightcycles=lightcycles, maxdays=maxdays, fig_path=fig_path)
+
+
+##### UNDER CONSTRUCTION #####
+    
+
+class TransitionGraph:
+
+    def __init__(self, window, window_title, behaviors, path, color_list=None, width=800, height=800):
+        self.window = window
+        self.window.title(window_title)
+
+        self.behaviors = behaviors
+
+        self.width = width 
+        self.height = height
+
+        self.path = path
+
+        self.padding = 5
+        self.node_size = 50
+
+        self.bin_size = 1 
+        self.jump_size = 1
+
+        self.file = 'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\graph.png'
+
+        self.transitions(behaviors, path)
+
+        self.frame = tk.Frame(self.window)
+
+
+        self.color_list = [(255,97,3),(255,255,0),(65,105,225),(255,0,0),(255,20,147),(132,112,255),(59,59,59),(50,205,50),(138,54,15)]
+
+
+        self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
+        self.canvas.grid(column=0, row=0)
+
+        self.frame.pack(anchor=tk.CENTER, pady=5, padx=5)
+        self.bin = tk.Scale(window, from_=1, to=20, orient=tk.HORIZONTAL)
+        self.bin.pack()
+        self.jump = tk.Scale(window, from_=1, to=120, orient=tk.HORIZONTAL)
+        self.jump.pack()
+        tk.Button(window, text='Show', command=self.update).pack(pady=5)
+
+
+        self.draw()
+        self.load_image()
+
         
-#         self.matrix = matrix
+        self.window.mainloop()
 
-#     def update(self):
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
+        ctx = cairo.Context(surface)
 
-#         self.bin_size = int(self.bin.get())
-#         self.jump_size = int(self.jump.get())
+        width = self.width
+        height = self.height
 
-#         self.transitions(self.behaviors, self.path)
-#         self.draw()
-#         self.load_image()
+        ctx.scale(width, height)
+
+        ctx.rectangle(0,0,1,1)
+        ctx.set_source_rgba(0, 0, 0, 1)
+        ctx.fill()
+        
+        self.draw_graph(ctx, .3, self.behaviors, self.color_list, self.matrix)
+        self.draw_matrix(ctx, .75, self.behaviors, self.color_list, self.matrix)
+        
+        surface.write_to_png(self.file)
+
+    def load_image(self):
+        img = ImageTk.PhotoImage(Image.open(self.file))
+        self.img = img
+        self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
+
+    def draw_graph(self, ctx, y, behaviors, colors, matrix):
+
+
+        node_size = .1
+
+        ex_padding = .05
+        in_padding = .02
+        node_size = (1-2*ex_padding - (len(behaviors)-1) * in_padding)/len(behaviors)
+
+        if node_size<0:
+            raise Exception('Padding too large for number of behaviors.')
+
+
+
+        cx = ex_padding + node_size/2
+        cy = y
+
+        roundness = .5
+        rc = (1-roundness)
+
+        Ialpha = .7
+        Oalpha = .5
+
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+
+        for i, b in enumerate(behaviors):
+
+            ctx.set_line_width(node_size*.1)
+            c = colors[i]
+
+            xl = cx-node_size/2
+            xr = cx+node_size/2
+            yt = cy-node_size/2
+            yb = cy+node_size/2
+
+            ctx.move_to(xl, cy+node_size/2*rc)
+            ctx.line_to(xl, cy-node_size/2*rc)
+            ctx.curve_to(xl, cy-node_size/2*rc, xl, yt, cx-node_size/2*rc, yt)
+            ctx.line_to(cx+node_size/2*rc, yt)
+            ctx.curve_to(cx+node_size/2*rc, yt, xr, yt, xr, cy-node_size/2*rc)
+            ctx.line_to(xr, cy+node_size/2*rc)
+            ctx.curve_to(xr, cy+node_size/2*rc, xr, yb, cx+node_size/2*rc, yb)
+            ctx.line_to(cx-node_size/2*rc, yb)
+            ctx.curve_to(cx-node_size/2*rc, yb, xl, yb, xl, cy+node_size/2*rc)
+
+
+            ctx.close_path()
+
+            ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+
+            ctx.fill_preserve()
+
+            ctx.set_source_rgba(0, 0, 0, Oalpha)
+            ctx.stroke()
+
+            ctx.select_font_face("Courier", cairo.FONT_SLANT_NORMAL)
+            ctx.set_font_size(node_size*.3)
+            
+            (x, y, width, height, dx, dy) = ctx.text_extents(b)
+
+            ctx.move_to(cx - width/2, cy + height/4)    
+            ctx.set_source_rgba(0, 0, 0, 1)
+            ctx.show_text(b)
+
+
+            # draw the edges
+            tcx = cx 
+            tcy = cy 
+
+            edge_padding = node_size*.1
+
+            edge_step = (node_size-2*edge_padding)/(len(behaviors)-1)
+            
+
+            for i1, b1 in enumerate(behaviors):
+
+                dist = np.abs(i1-i)/len(behaviors)
+
+                adjcx = (node_size + in_padding)*dist*len(behaviors)
+                adjcx1 = -(node_size + in_padding)*dist*len(behaviors)
+
+                stepup = .13
+
+
+                # set the edge line weight to be smaller so that there is "padding"
+
+                if b!=b1 and i1>i:
+
+                    weight = matrix[i,i1]
+
+                    if weight<.2:
+                        continue
+
+                    ctx.set_line_width(edge_step*weight)
+
+                    ctx.move_to(xl+i1*edge_step+edge_padding, yt-edge_padding)
+
+                    # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+                    # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+
+                    mx = (xl+i1*edge_step+edge_padding+(xl+adjcx)+i*edge_step+edge_padding)/2
+
+                    ctx.curve_to(xl+i1*edge_step+edge_padding, yt-edge_padding, xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist),mx, yt-edge_padding-stepup*(dist))
+                    ctx.curve_to(mx, yt-edge_padding-stepup*(dist), (xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist),(xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+                    
+                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+                    ctx.stroke()
+
+                    ctx.set_line_width(edge_step*2*weight)
+                    ctx.move_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+                    ctx.line_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+                    ctx.stroke()
+
+                elif b!=b1:
+                    weight = matrix[i,i1]
+
+                    if weight<.2:
+                        continue
+
+                    ctx.set_line_width(edge_step*weight)
+
+                    ctx.move_to(xl+i1*edge_step+edge_padding, yb+edge_padding)
+
+                    # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+                    # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+
+                    mx = (xl+i*edge_step+edge_padding+(xl+adjcx1)+i1*edge_step+edge_padding)/2
+
+                    ctx.curve_to(xl+i1*edge_step+edge_padding, yb+edge_padding, xl+i1*edge_step+edge_padding, yb+edge_padding+stepup*(dist),mx, yb+edge_padding+stepup*(dist))
+                    ctx.curve_to(mx, yb+edge_padding+stepup*(dist), (xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding+stepup*(dist),(xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+
+
+                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+                    ctx.stroke()
+                    
+                    ctx.set_line_width(edge_step*2*weight)
+                    ctx.move_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+                    ctx.line_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+                    ctx.stroke()
+
+            # adjust the center x 
+            cx += node_size + in_padding
+    
+    def draw_matrix(self, ctx, y, behaviors, colors, matrix):
+
+        map = sns.color_palette("viridis", as_cmap=True).colors
+        map_len = len(map)
+
+        width = self.width
+        height = self.height
+
+        node_size = .04
+
+        padding = 0.003 
+
+        size = node_size*len(behaviors)+padding*(len(behaviors)-1)
+
+        cx = .5+node_size/2+padding
+
+        xl = cx - size/2
+        xr = cx + size/2
+
+        yt = y - size/2
+        yb = y + size/2
+
+        border_size = padding
+        ctx.set_line_width(border_size)
+
+        # ctx.rectangle(xl-padding,yt-padding,size+padding*2,size+padding*2)
+        # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+        # ctx.fill()
+        # ctx.stroke()
+
+        for c in range(len(behaviors)):
+            cl = colors[c]
+            txl = xl-padding + c*(node_size+padding)
+            tyl = yt-padding*2.5-node_size
+
+            # ctx.rectangle(txl,tyl,node_size+padding*2,node_size+padding*3)
+            # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+            # ctx.fill()
+            # ctx.stroke()
+
+            
+            # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+            # ctx.set_source_rgba(1, 1, 1, 1)
+            # ctx.fill()
+            # ctx.stroke()
+
+            
+            ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+            ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
+            ctx.fill_preserve()
+            ctx.set_source_rgba(0, 0, 0, .5)
+            ctx.stroke()
+
+        for c in range(len(behaviors)):
+            cl = colors[c]
+            txl = xl-padding -padding*1.5-node_size
+            tyl = yt-padding + c*(node_size+padding)
+
+            # ctx.rectangle(txl,tyl,node_size+padding*3,node_size+padding*2)
+            # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+            # ctx.fill()
+            # ctx.stroke()
+
+            
+            # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+            # ctx.set_source_rgba(1, 1, 1, 1)
+            # ctx.fill()
+            # ctx.stroke()
+
+            
+            ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+            ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
+            ctx.fill_preserve()
+            ctx.set_source_rgba(0, 0, 0, .5)
+            ctx.stroke()
+
+        i = 0
+        for x in np.arange(0, size, node_size+padding):
+            j = 0
+            for y in np.arange(0, size, node_size+padding):
+                weight = matrix[j,i]
+                c = colors[j]
+                # ctx.rectangle(x+xl,y+yt,node_size,node_size)
+                # ctx.set_source_rgba(0, 0, 0, .5)
+                # ctx.fill()
+                # ctx.stroke()
+
+                ctx.rectangle(x+xl,y+yt,node_size,node_size)
+                ctx.set_source_rgba(map[int(weight*map_len)][0],map[int(weight*map_len)][1],map[int(weight*map_len)][2], .7)
+                ctx.fill()
+                ctx.stroke()
+                j+=1
+            i+=1
+
+    def transitions(self, behaviors, path):
+
+        df = pd.read_csv(path)
+        df = df.to_numpy()[1:,1:]
+
+        matrix = np.zeros((len(behaviors), len(behaviors)))
+
+        linear = []
+
+        for i in range(len(df)):
+            linear.append(np.argmax(df[i]))
+        
+        # calc the transitions
+        linear = np.array(linear)
+        bin_size = self.bin_size
+
+        jump_size = self.jump_size
+
+        binned = []
+
+        for i in range(0,len(linear),bin_size):
+
+            end = i+bin_size
+            if end>len(linear):
+                end = len(linear)
+
+            chunk = linear[i:end]
+            counts = []
+            for b in range(len(behaviors)):
+                counts.append(np.sum(chunk==b))
+            if counts[np.argmax(counts)]==0:
+                binned.append(-1)
+            else:
+                binned.append(np.argmax(counts))
+        
+        instances = [0 for b in behaviors]
+        for i in range(len(binned)):
+            instances[binned[i]] += 1
+
+        for b in range(len(behaviors)):
+            next = [0 for b1 in behaviors]
+            for i in range(len(binned)-jump_size):
+                if b==binned[i]:
+                    next[binned[i+jump_size]] += 1
+            next = np.array(next)
+            next = next/instances[b]
+
+            matrix[b,:] = next
+        
+        self.matrix = matrix
+
+    def update(self):
+
+        self.bin_size = int(self.bin.get())
+        self.jump_size = int(self.jump.get())
+
+        self.transitions(self.behaviors, self.path)
+        self.draw()
+        self.load_image()
 
 class TransitionRaster:
 
@@ -1415,569 +2058,6 @@ class TransitionRasterDif:
         self.r1.draw()
         self.r2.draw()
 
-class Ethograms:
-
-    def __init__(self, window, window_title, behaviors, paths, groups, starts, lightcycles, maxdays, color_list=[(255,128,0),(225,192,0),(0,0,255),(255,0,0),(192,0,192),(153,87,238),(100,100,100),(0,192,0),(148,100,31)], width=800, height=800, fig_path=None):
-        self.window = window
-        self.window.title(window_title)
-
-        self.behaviors = behaviors
-
-        self.width = width 
-        self.height = height
-
-        self.paths = paths
-
-        self.groups = groups
-
-        self.starts = starts
-
-        self.lightcycles = lightcycles
-        self.maxdays = maxdays
-
-
-        self.timeseries(paths=paths, behaviors=behaviors, groups=groups, lightcycles=lightcycles)
-
-        self.group_names.sort()
-        self.group_name = [self.group_names[0]]
-
-        self.fig_path = fig_path
-
-
-
-        self.frame = tk.Frame(self.window)
-
-        self.right = tk.Frame(self.window)
-
-        self.color_list = color_list
-
-
-        self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
-        self.canvas.grid(column=0, row=0)
-
-        
-        self.frame.pack(side=tk.LEFT, pady=5, padx=5)
-
-        
-        options = self.group_names
-        self.label = tk.Label(self.right, text = "Camera Groups", font=('TkDefaultFixed', 10)).pack(side=tk.TOP, anchor='sw', pady=5, padx=5)
-        self.listbox = tk.Listbox(self.right, selectmode = "multiple")
-        self.listbox.pack(pady=5, padx=5)
-        
-        for option in options:
-            self.listbox.insert(tk.END, option)
-        
-        self.button = tk.Button(self.right, text="Replot", command=self.update, font=('TkDefaultFixed', 10), relief='flat', autostyle=False).pack(side=tk.BOTTOM, anchor='center', pady=5, padx=5)
-
-        self.right.pack(side=tk.RIGHT, pady=5, padx=5)
-
-
-
-        self.draw()
-        self.load_image()
-
-        
-        self.window.mainloop()
-
-    def draw(self):
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
-        ctx = cairo.Context(surface)
-
-        width = self.width
-        height = self.height
-
-        ctx.scale(width, height)
-        
-        self.draw_actograms(ctx, self.group_name)
-
-        
-        name = ""
-        for g in self.group_name:
-            name+=str(g) 
-            name+='_'
-
-        self.file = os.path.join(self.fig_path, name+'ethogram.png')
-        
-        surface.write_to_png(self.file)
-
-    def load_image(self):
-        img = ImageTk.PhotoImage(Image.open(self.file))
-        self.img = img
-
-        self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
-
-    def draw_actograms(self, ctx, groups):
-
-        print('Setting up all actograms...')
-
-        num_behaviors = len(self.behaviors)
-        num_wide = math.ceil(math.sqrt(num_behaviors))
-        num_tall = math.ceil(num_behaviors/num_wide)
-
-        padding = .02 
-
-        actogram_width = (1 - 2*padding - (num_wide-1)*padding)/(num_wide)
-        actogram_height = (1 - 2*padding - (num_tall-1)*padding)/(num_tall)
-
-        cx = padding
-        cy = padding
-        i = 0
-
-        for b in self.behaviors:
-            h = int(i/num_wide)
-            w = i%num_wide
-
-            cx = (actogram_width)*w + (padding)*(w+1)
-            cy = (actogram_height)*h + (padding)*(h+1)
-
-
-            self.draw_actogram(ctx, cx, cy, actogram_width, actogram_height, padding, groups, b, self.color_list[self.behaviors.index(b)])
-            i+=1
-
-    def draw_actogram(self, ctx, tlx, tly, width, height, padding, groups, behavior, color, mode='light'):
-        
-        ctx.set_line_width(.005)
-
-        if mode!='light':
-            ctx.rectangle(tlx - padding/4,tly - padding/4,width + padding/2,height + padding/2)
-            ctx.set_source_rgba(.1, .1, .1, 1)
-            ctx.fill()
-        else:
-            ctx.rectangle(tlx - padding/4,tly - padding/4,width + padding/2,height + padding/2)
-            ctx.set_source_rgba(1, 1, 1, 1)
-            ctx.fill()
-
-
-        print(f'Drawing {behavior} actogram...')
-        opacity = 1/len(groups)
-        
-        for z in range(len(groups)):
-
-            first = False 
-            last = False 
-            group = groups[z]
-
-            if z==0:
-                first = True
-            if z==len(groups)-1:
-                last = True
-
-            total_data = []
-            days = []
-            cycles = []
-            for p in range(len(self.timeseries_data[group])):
-                data = self.timeseries_data[group][p]['data'][behavior]
-                total_data.append(data)
-                days.append(self.timeseries_data[group][p]['length'])
-                cycles.append(self.timeseries_data[group][p]['light'])
-
-            total_days = np.sum(days)
-            if total_days>self.maxdays:
-                total_days = self.maxdays
-
-
-            day_height = height/total_days
-            
-            bin_width = 1/48 * self.bin_size/36000
-            ds = 0
-            for i in range(len(days)):
-                
-                data = total_data[:][i]
-
-                times = data[0]
-                ts = data[1]
-
-                expdays = days[i]
-
-                end = ds + expdays
-
-                if end>self.maxdays:
-                    end = self.maxdays
-                
-                for d in range(int(ds), int(end)):
-
-                    by = tly+(d+1)*day_height
-
-                    d1 = d-ds
-
-                    valid = np.logical_and(times>(d1*24),times<=((d1+2)*24))
-
-                    if d1%2!=0:
-                        adj_times = times[valid] + 24
-                    else:
-                        adj_times = times[valid]
-
-                    adj_times = adj_times%48
-
-                    series = ts[valid]
-
-                    # normalize the series
-                    series = np.array(series)
-                    series = series/np.max(series)
-
-                    series = series*.90
-
-                    LD = True
-                    if cycles is not None:
-                        LD = cycles[i]
-
-                    if LD and first:
-                        ctx.set_source_rgb(223/255,223/255,223/255)
-                        ctx.rectangle(tlx+0/48*width, by-day_height, 6/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+18/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+42/48*width, by-day_height, 6/48*width, day_height)
-                        ctx.fill()
-
-                        ctx.set_source_rgb(255/255, 239/255, 191/255)
-                        ctx.rectangle(tlx+6/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+30/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-
-                    elif first:
-                        ctx.set_source_rgb(223/255,223/255,223/255)
-                        ctx.rectangle(tlx+0/48*width, by-day_height, 6/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+18/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+42/48*width, by-day_height, 6/48*width, day_height)
-                        ctx.fill()
-
-                        ctx.set_source_rgb(246/255, 246/255, 246/255)
-                        ctx.rectangle(tlx+6/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-                        ctx.rectangle(tlx+30/48*width, by-day_height, 12/48*width, day_height)
-                        ctx.fill()
-                    
-
-
-                    for t in range(len(adj_times)):
-                        timepoint = adj_times[t]
-                        value = series[t]
-                        
-                        a_time = timepoint/48
-                        
-                        ctx.rectangle(tlx+a_time*width,by-value*day_height,bin_width*width,value*day_height)
-                        ctx.set_source_rgba(color[0]/255, color[1]/255, color[2]/255, opacity*2)
-                        ctx.fill()
-
-
-                ds += expdays
-
-            if last:
-                ds = 0
-                for i in range(len(days)):
-
-                    expdays = days[i]
-                    end = ds + expdays
-
-                    if end>self.maxdays:
-                        end = self.maxdays
-                    
-                    for d in range(int(ds), int(ds+expdays)):
-
-                        by = tly+(d+1)*day_height
-
-                        ctx.set_line_width(.002)
-                        ctx.set_source_rgb(0, 0, 0)
-                        ctx.move_to(tlx, by)
-                        ctx.line_to(tlx+48/48*width, by)
-                        ctx.stroke()
-
-                    
-                    
-                    ds += expdays
-        
-    def timeseries(self, paths, groups, lightcycles, behaviors):
-
-        # paths is an array of paths to recording folders, it is assumed that the paths are in order of gluing
-        
-        # groups is an array of dictionaries of camera names for each recording that are to be glued together
-        # [{0:'cam1', 1:'cam1'}] means that the first camera from the first recording path is going to be glued to the first camera of the second recording
-        
-        # lightcycles is a boolean array of whether the recording is in LD or not (True=LD, False=DD)
-        # behaviors is an array of behaviors to plot
-
-        print('Loading the timeseries data...')
-
-        if groups is None:
-            numpaths = len(paths)
-            path = paths[0]  
-
-            f = []
-            for (dirpath, dirnames, filenames) in os.walk(path):
-                f.extend(dirnames)
-                break
-            
-            cameras = {}
-            camera_names = []
-
-            for file in f:
-                try:
-                    name = file.split('_')[1]
-                except:
-                    continue
-
-                if name not in camera_names:
-                    camera_names.append(name)
-                    cameras[name] = []
-            
-            groups = [{p:c for p in range(numpaths)} for c in camera_names]
-
-
-            
-
-        # for path in paths:
-
-        #     f = []
-        #     for (dirpath, dirnames, filenames) in os.walk(path):
-        #         f.extend(filenames)
-        #         break
-            
-        #     cameras = {}
-        #     camera_names = []
-
-        #     for file in f:
-        #         try:
-        #             name = file.split('_')[1]
-        #         except:
-        #             continue
-
-        #         if name in camera_names:
-        #             cameras[name].append(file)
-        #         else:
-        #             camera_names.append(name)
-        #             cameras[name] = [file]
-        path = paths[0]   
-
-        total_group_data = {}
-        group_names = []
-
-        ind = 0
-        for arr in groups:
-            total_group_data[ind] = None
-            group_names.append(ind)
-            ind+=1
-
-        ind = 0
-        for path in paths:
-
-
-            exp = os.path.split(path)[1]
-
-            f = []
-
-            for (dirpath, dirnames, filenames) in os.walk(path):
-                f.extend(dirnames)
-                break
-
-
-            deg = True 
-
-
-            for fold in f:
-                if os.path.exists(os.path.join(path, f[0], f[0]+'_outputs_inferences.csv')):
-                    deg = False
-
-            
-
-            if not deg:
-                files = {fold:os.path.join(path, fold, fold+'_outputs_inferences.csv') for fold in f}
-            elif deg:
-                files = {fold:os.path.join(path, fold, fold+'_predictions.csv') for fold in f}
-            else:
-                raise Exception('No valid files found in '+path)
-
-
-            for file in files.keys():
-                try:
-                    name = file.split('_')[1]
-                except:
-                    continue
-
-                if name in camera_names:
-                    cameras[name].append(files[file])
-                else:
-                    camera_names.append(name)
-                    cameras[name] = [files[file]]
-
-            video_size = 18000
-            bin_size = 18000
-            self.bin_size = bin_size
-
-            vidsperhour = 36000/video_size
-
-            camera_data = {}
-            timeseries_data = {}
-
-            for g in camera_names:
-                time_data = {}
-                for file in cameras[g]:
-                    df = pd.read_csv(file)
-                    df = df.to_numpy()[1:,1:]
-
-                    time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])] = []
-
-                    for r in range(len(df[0,:])):
-                        bins = []
-                        
-                        for b in range(0,len(df),bin_size):
-                            end = b+bin_size
-                            if end>len(df):
-                                end = len(df)
-                            
-                            col = df[b:end, r]
-                            bins.append(np.sum(col))
-
-                        bins = np.array(bins)
-                        if len(bins)>video_size/bin_size:
-                            bins = bins[:int(video_size/bin_size)]
-                        elif len(bins)<video_size/bin_size:
-                            n = video_size/bin_size - len(bins)
-                            temp_bins = []
-                            temp_bins.extend(bins.tolist())
-                            for i in range(int(n)):
-                                temp_bins.append(0)
-                            
-                            bins = np.array(temp_bins)
-
-                        time_data[remove_leading_zeros(os.path.split(file)[1].split('_')[2])].append(bins)
-
-
-                
-                camera_data[g] = time_data
-
-                num_bins = len(camera_data[camera_names[0]][0][0])
-            
-                days = int(np.ceil(len(camera_data[camera_names[0]])/(vidsperhour*24)))
-
-                timeseries_data[g] = {b:None for b in behaviors}
-
-                for i in np.arange(0,days,1):
-                    
-                    indices = range(int(i*num_bins*(vidsperhour*24)), int((i+1)*num_bins*(vidsperhour*24)),1)
-
-                    valid_indices = []
-                    for id in indices:
-                        t = int(id)
-                        tp = int(t/num_bins)
-                        stp = int(t%num_bins)
-
-                        if tp>=len(time_data):
-                            continue
-                        else:
-                            valid_indices.append(id)
-                    
-                    indices = np.array(indices)
-
-                    data = np.zeros((len(camera_data[camera_names[0]][0]), len(indices)))
-
-                    time_data = camera_data[g]
-
-                    for id in indices:
-                        t = int(id)
-                        tp = int(t/num_bins)
-                        stp = int(t%num_bins)
-
-                        if tp>=len(time_data):
-                            continue
-
-                        data_ind = int(id-i*num_bins*(vidsperhour*24))
-
-                        for r in range(len(camera_data[camera_names[0]][0])):
-
-                            try:
-                                data[r,data_ind] = time_data[tp][r][stp]
-                            except:
-                                data[r,data_ind] = 0
-
-
-
-                    for b in range(len(behaviors)):
-
-                        ts = data[b, :]
-                        times = np.arange(len(ts)) * (24) / ((video_size/bin_size) * (vidsperhour*24))
-                        times += self.starts[ind]
-
-                       
-                        if timeseries_data[g][behaviors[b]] is None:
-                            timeseries_data[g][behaviors[b]] = (times, ts)
-
-                        else:
-                            
-                            old_data = timeseries_data[g][behaviors[b]]
-
-                            newtimes = []
-                            for t in old_data[0]:
-                                newtimes.append(t)
-                            for t in times:
-                                newtimes.append(t+i*24)
-                            newtimes = np.array(newtimes)
-
-                            newts = []
-                            for t in old_data[1]:
-                                newts.append(t)
-                            for t in ts:
-                                newts.append(t)
-                            newts = np.array(newts)
-
-
-                            timeseries_data[g][behaviors[b]] = (newtimes, newts)
-
-            recDays = int(np.ceil(len(camera_data[camera_names[0]])/(vidsperhour*24)))
-
-            # loop over the groups
-            for g in group_names:
-                incl = groups[g]
-
-                # get the camera for this group
-                try:
-                    recCam = incl[ind]
-                except:
-                    print(f'No data for recording {ind} and group {incl}.')
-                    continue
-
-                recStart = self.starts[ind]
-                recLight = True
-                if lightcycles is not None:
-                    recLight = lightcycles[ind]
-
-                if total_group_data[g] is None:
-                    total_group_data[g] = [{'exp':os.path.split(path)[1],'length':recDays, 'start':recStart, 'light':recLight, 'data':timeseries_data[recCam]}]
-                else:
-                    total_group_data[g].append({'exp':os.path.split(path)[1],'length':recDays, 'start':recStart, 'light':recLight, 'data':timeseries_data[recCam]})
-                
-
-            # increase ind to new path
-            ind+=1
-            
-
-
-
-        self.group_names = group_names
-
-        self.timeseries_data = total_group_data
-
-    def update(self):
-        
-        selections = self.listbox.curselection()
-
-        if len(selections)==0:
-            return
-        
-        self.group_name = [self.group_names[g] for g in selections]
-        
-        self.draw()
-        self.load_image()
-     
-def remove_leading_zeros(num):
-    for i in range(0,len(num)):
-        if num[i]!='0':
-            return int(num[i:])  
-    return 0
-
 def transitions(model_name, behaviors, recording_names, starts=None, name=None, project_config='undefined'):
 
     # open the project config and get the test_set yaml path
@@ -2053,83 +2133,6 @@ def transitiondifs(behaviors, recording_names, start1, start2, color1, color2, n
     root = tk.Tk()
     tg = TransitionRasterDif(root, 'Transition Differences', behaviors, recording_names[0], recording_names[1], start1, start2, color1, color2, name1, name2)
 
-def ethograms(model_name, behaviors, recording_names, starts=None, lightcycles=None, maxdays=50, groups=None, name=None, project_config='undefined'):
-
-    # open the project config and get the test_set yaml path
-    if project_config=='undefined':
-        # assume that the user is located in an active project
-        user_dir = os.getcwd()
-
-        # make sure user is located within the main directory of a project
-        project_config = os.path.join(user_dir, 'project_config.yaml')
-
-        if os.path.exists(project_config):
-            print('Project found.')
-        else:
-            raise Exception('Project not found.')
-        
-        # extract the project_config file
-        try:
-            with open(project_config, 'r') as file:
-                pconfig = yaml.safe_load(file)
-        except:
-            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-
-        # grabbing the locations of the recordings
-        recordings_path = pconfig['recordings_path']
-        figures_path = pconfig['figures_path']
-
-    
-    else:
-
-        if os.path.exists(project_config):
-            print('Project found.')
-        else:
-            raise Exception('Project not found.')
-        
-        # extract the project_config file
-        try:
-            with open(project_config, 'r') as file:
-                pconfig = yaml.safe_load(file)
-        except:
-            raise Exception('Failed to extract the contents of the project config file. Check for yaml syntax errors.')
-
-        # grabbing the locations of the recordings
-        recordings_path = pconfig['recordings_path']
-        figures_path = pconfig['figures_path']
-
-
-    data = []
-    for r in recording_names:
-        recording_path = os.path.join(recordings_path, r,model_name)
-        recording_config = os.path.join(recordings_path, r, 'details.yaml')
-
-        with open(recording_config, 'r') as file:
-            rconfig = yaml.safe_load(file)
-        
-        if model_name in rconfig['cameras_per_model'].keys() and len(rconfig['cameras_per_model'][model_name])>0:
-            try:
-                data.append((recording_path, float(rconfig['start_time'].split(':')[0]) + float(rconfig['start_time'].split(':')[1])))
-            except:
-                data.append((recording_path, 0))
-
-
-    if starts is None:
-        starts = [data[i][1] for i in range(len(data))]
-
-    if name is None:
-        name = model_name+'_'+recording_names[0]
-
-    paths = [data[i][0] for i in range(len(data))]
-
-    fig_path = os.path.join(figures_path, 'ethograms_'+datetime.utcnow().strftime('%Y%m%d%H%M%S'))
-    if not os.path.exists(fig_path):
-        os.mkdir(fig_path)
-
-    root = ttk.Window(themename=theme)
-    tg = Ethograms(root, 'Ethograms', behaviors=behaviors, paths=paths, groups=groups, starts=starts, lightcycles=lightcycles, maxdays=maxdays, fig_path=fig_path)
-
-##### UNDER CONSTRUCTION #####
 
 def circ_rtest(self, alpha, w=None, d=0):
         """

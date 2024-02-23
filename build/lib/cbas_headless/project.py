@@ -76,7 +76,7 @@ def create_project(project_name):
     os.mkdir(recordings)
 
     os.mkdir(figures)
-    os.mkdir(ethograms)
+    #os.mkdir(ethograms)
     
     os.mkdir(models)
     os.mkdir(postprocessors)
@@ -104,7 +104,6 @@ def create_project(project_name):
                 'postprocessors':postprocessors,
                 'postprocessors_config':postprocessors_config,
                 'figures_path':figures,
-                'ethograms_path':ethograms,
                 'datasets_path':data_sets,
                 'trainingsets_path':training_sets,
                 'testsets_path':test_sets,
@@ -393,7 +392,7 @@ def add_camera(rtsp_url, name, project_config='undefined', safe=True):
         with open(cameras, 'w+') as file:
             yaml.dump(config, file, allow_unicode=True)
 
-# Removes a camera from a given project, scorched earth style
+# Removes a camera from a given project
 def remove_camera(name, project_config='undefined'):
 
     """
@@ -1196,7 +1195,7 @@ def add_postprocessor_to_model(name, postprocessor, project_config="undefined"):
     
     print(f'Postprocessor successfully added to {name}')
 
-# removes a model to a given project    
+# removes a model from a given project    
 def remove_model(name, project_config="undefined"):
 
     """
