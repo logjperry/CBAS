@@ -710,7 +710,6 @@ def train(m_path, train_set, test_set, seq_len, classes):
             all_trues = []
 
             for seq, target in test_set:
-                print(f'Epoch {epoch}:')
 
                 # Move data to the device
                 target = target.long()

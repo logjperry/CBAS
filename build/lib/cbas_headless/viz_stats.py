@@ -37,373 +37,373 @@ import statsmodels.formula.api as smf
 
 theme = 'superhero'
 
-class TransitionGraph:
+# class TransitionGraph:
 
-    def __init__(self, window, window_title, behaviors, path, color_list=None, width=800, height=800):
-        self.window = window
-        self.window.title(window_title)
+#     def __init__(self, window, window_title, behaviors, path, color_list=None, width=800, height=800):
+#         self.window = window
+#         self.window.title(window_title)
 
-        self.behaviors = behaviors
+#         self.behaviors = behaviors
 
-        self.width = width 
-        self.height = height
+#         self.width = width 
+#         self.height = height
 
-        self.path = path
+#         self.path = path
 
-        self.padding = 5
-        self.node_size = 50
+#         self.padding = 5
+#         self.node_size = 50
 
-        self.bin_size = 1 
-        self.jump_size = 1
+#         self.bin_size = 1 
+#         self.jump_size = 1
 
-        self.file = 'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\graph.png'
+#         self.file = 'C:\\Users\\Jones-Lab\\Documents\\cbas_test\\graph.png'
 
-        self.transitions(behaviors, path)
+#         self.transitions(behaviors, path)
 
-        self.frame = tk.Frame(self.window)
-
-
-        self.color_list = [(255,97,3),(255,255,0),(65,105,225),(255,0,0),(255,20,147),(132,112,255),(59,59,59),(50,205,50),(138,54,15)]
+#         self.frame = tk.Frame(self.window)
 
 
-        self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
-        self.canvas.grid(column=0, row=0)
-
-        self.frame.pack(anchor=tk.CENTER, pady=5, padx=5)
-        self.bin = tk.Scale(window, from_=1, to=20, orient=tk.HORIZONTAL)
-        self.bin.pack()
-        self.jump = tk.Scale(window, from_=1, to=120, orient=tk.HORIZONTAL)
-        self.jump.pack()
-        tk.Button(window, text='Show', command=self.update).pack(pady=5)
+#         self.color_list = [(255,97,3),(255,255,0),(65,105,225),(255,0,0),(255,20,147),(132,112,255),(59,59,59),(50,205,50),(138,54,15)]
 
 
-        self.draw()
-        self.load_image()
+#         self.canvas = tk.Canvas(self.frame, width=self.width, height=self.height)
+#         self.canvas.grid(column=0, row=0)
+
+#         self.frame.pack(anchor=tk.CENTER, pady=5, padx=5)
+#         self.bin = tk.Scale(window, from_=1, to=20, orient=tk.HORIZONTAL)
+#         self.bin.pack()
+#         self.jump = tk.Scale(window, from_=1, to=120, orient=tk.HORIZONTAL)
+#         self.jump.pack()
+#         tk.Button(window, text='Show', command=self.update).pack(pady=5)
+
+
+#         self.draw()
+#         self.load_image()
 
         
-        self.window.mainloop()
+#         self.window.mainloop()
 
-    def draw(self):
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
-        ctx = cairo.Context(surface)
+#     def draw(self):
+#         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width, self.height)
+#         ctx = cairo.Context(surface)
 
-        width = self.width
-        height = self.height
+#         width = self.width
+#         height = self.height
 
-        ctx.scale(width, height)
+#         ctx.scale(width, height)
 
-        ctx.rectangle(0,0,1,1)
-        ctx.set_source_rgba(0, 0, 0, 1)
-        ctx.fill()
+#         ctx.rectangle(0,0,1,1)
+#         ctx.set_source_rgba(0, 0, 0, 1)
+#         ctx.fill()
         
-        self.draw_graph(ctx, .3, self.behaviors, self.color_list, self.matrix)
-        self.draw_matrix(ctx, .75, self.behaviors, self.color_list, self.matrix)
+#         self.draw_graph(ctx, .3, self.behaviors, self.color_list, self.matrix)
+#         self.draw_matrix(ctx, .75, self.behaviors, self.color_list, self.matrix)
         
-        surface.write_to_png(self.file)
+#         surface.write_to_png(self.file)
 
-    def load_image(self):
-        img = ImageTk.PhotoImage(Image.open(self.file))
-        self.img = img
-        self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
+#     def load_image(self):
+#         img = ImageTk.PhotoImage(Image.open(self.file))
+#         self.img = img
+#         self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
 
-    def draw_graph(self, ctx, y, behaviors, colors, matrix):
-
-
-        node_size = .1
-
-        ex_padding = .05
-        in_padding = .02
-        node_size = (1-2*ex_padding - (len(behaviors)-1) * in_padding)/len(behaviors)
-
-        if node_size<0:
-            raise Exception('Padding too large for number of behaviors.')
+#     def draw_graph(self, ctx, y, behaviors, colors, matrix):
 
 
+#         node_size = .1
 
-        cx = ex_padding + node_size/2
-        cy = y
+#         ex_padding = .05
+#         in_padding = .02
+#         node_size = (1-2*ex_padding - (len(behaviors)-1) * in_padding)/len(behaviors)
 
-        roundness = .5
-        rc = (1-roundness)
-
-        Ialpha = .7
-        Oalpha = .5
-
-        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-
-        for i, b in enumerate(behaviors):
-
-            ctx.set_line_width(node_size*.1)
-            c = colors[i]
-
-            xl = cx-node_size/2
-            xr = cx+node_size/2
-            yt = cy-node_size/2
-            yb = cy+node_size/2
-
-            ctx.move_to(xl, cy+node_size/2*rc)
-            ctx.line_to(xl, cy-node_size/2*rc)
-            ctx.curve_to(xl, cy-node_size/2*rc, xl, yt, cx-node_size/2*rc, yt)
-            ctx.line_to(cx+node_size/2*rc, yt)
-            ctx.curve_to(cx+node_size/2*rc, yt, xr, yt, xr, cy-node_size/2*rc)
-            ctx.line_to(xr, cy+node_size/2*rc)
-            ctx.curve_to(xr, cy+node_size/2*rc, xr, yb, cx+node_size/2*rc, yb)
-            ctx.line_to(cx-node_size/2*rc, yb)
-            ctx.curve_to(cx-node_size/2*rc, yb, xl, yb, xl, cy+node_size/2*rc)
+#         if node_size<0:
+#             raise Exception('Padding too large for number of behaviors.')
 
 
-            ctx.close_path()
 
-            ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+#         cx = ex_padding + node_size/2
+#         cy = y
 
-            ctx.fill_preserve()
+#         roundness = .5
+#         rc = (1-roundness)
 
-            ctx.set_source_rgba(0, 0, 0, Oalpha)
-            ctx.stroke()
+#         Ialpha = .7
+#         Oalpha = .5
 
-            ctx.select_font_face("Courier", cairo.FONT_SLANT_NORMAL)
-            ctx.set_font_size(node_size*.3)
+#         ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+
+#         for i, b in enumerate(behaviors):
+
+#             ctx.set_line_width(node_size*.1)
+#             c = colors[i]
+
+#             xl = cx-node_size/2
+#             xr = cx+node_size/2
+#             yt = cy-node_size/2
+#             yb = cy+node_size/2
+
+#             ctx.move_to(xl, cy+node_size/2*rc)
+#             ctx.line_to(xl, cy-node_size/2*rc)
+#             ctx.curve_to(xl, cy-node_size/2*rc, xl, yt, cx-node_size/2*rc, yt)
+#             ctx.line_to(cx+node_size/2*rc, yt)
+#             ctx.curve_to(cx+node_size/2*rc, yt, xr, yt, xr, cy-node_size/2*rc)
+#             ctx.line_to(xr, cy+node_size/2*rc)
+#             ctx.curve_to(xr, cy+node_size/2*rc, xr, yb, cx+node_size/2*rc, yb)
+#             ctx.line_to(cx-node_size/2*rc, yb)
+#             ctx.curve_to(cx-node_size/2*rc, yb, xl, yb, xl, cy+node_size/2*rc)
+
+
+#             ctx.close_path()
+
+#             ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+
+#             ctx.fill_preserve()
+
+#             ctx.set_source_rgba(0, 0, 0, Oalpha)
+#             ctx.stroke()
+
+#             ctx.select_font_face("Courier", cairo.FONT_SLANT_NORMAL)
+#             ctx.set_font_size(node_size*.3)
             
-            (x, y, width, height, dx, dy) = ctx.text_extents(b)
+#             (x, y, width, height, dx, dy) = ctx.text_extents(b)
 
-            ctx.move_to(cx - width/2, cy + height/4)    
-            ctx.set_source_rgba(0, 0, 0, 1)
-            ctx.show_text(b)
+#             ctx.move_to(cx - width/2, cy + height/4)    
+#             ctx.set_source_rgba(0, 0, 0, 1)
+#             ctx.show_text(b)
 
 
-            # draw the edges
-            tcx = cx 
-            tcy = cy 
+#             # draw the edges
+#             tcx = cx 
+#             tcy = cy 
 
-            edge_padding = node_size*.1
+#             edge_padding = node_size*.1
 
-            edge_step = (node_size-2*edge_padding)/(len(behaviors)-1)
+#             edge_step = (node_size-2*edge_padding)/(len(behaviors)-1)
             
 
-            for i1, b1 in enumerate(behaviors):
+#             for i1, b1 in enumerate(behaviors):
 
-                dist = np.abs(i1-i)/len(behaviors)
+#                 dist = np.abs(i1-i)/len(behaviors)
 
-                adjcx = (node_size + in_padding)*dist*len(behaviors)
-                adjcx1 = -(node_size + in_padding)*dist*len(behaviors)
+#                 adjcx = (node_size + in_padding)*dist*len(behaviors)
+#                 adjcx1 = -(node_size + in_padding)*dist*len(behaviors)
 
-                stepup = .13
+#                 stepup = .13
 
 
-                # set the edge line weight to be smaller so that there is "padding"
+#                 # set the edge line weight to be smaller so that there is "padding"
 
-                if b!=b1 and i1>i:
+#                 if b!=b1 and i1>i:
 
-                    weight = matrix[i,i1]
+#                     weight = matrix[i,i1]
 
-                    if weight<.2:
-                        continue
+#                     if weight<.2:
+#                         continue
 
-                    ctx.set_line_width(edge_step*weight)
+#                     ctx.set_line_width(edge_step*weight)
 
-                    ctx.move_to(xl+i1*edge_step+edge_padding, yt-edge_padding)
+#                     ctx.move_to(xl+i1*edge_step+edge_padding, yt-edge_padding)
 
-                    # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
-                    # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+#                     # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+#                     # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
 
-                    mx = (xl+i1*edge_step+edge_padding+(xl+adjcx)+i*edge_step+edge_padding)/2
+#                     mx = (xl+i1*edge_step+edge_padding+(xl+adjcx)+i*edge_step+edge_padding)/2
 
-                    ctx.curve_to(xl+i1*edge_step+edge_padding, yt-edge_padding, xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist),mx, yt-edge_padding-stepup*(dist))
-                    ctx.curve_to(mx, yt-edge_padding-stepup*(dist), (xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist),(xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+#                     ctx.curve_to(xl+i1*edge_step+edge_padding, yt-edge_padding, xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist),mx, yt-edge_padding-stepup*(dist))
+#                     ctx.curve_to(mx, yt-edge_padding-stepup*(dist), (xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist),(xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
                     
-                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-                    ctx.stroke()
+#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+#                     ctx.stroke()
 
-                    ctx.set_line_width(edge_step*2*weight)
-                    ctx.move_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
-                    ctx.line_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
-                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-                    ctx.stroke()
+#                     ctx.set_line_width(edge_step*2*weight)
+#                     ctx.move_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+#                     ctx.line_to((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding)
+#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+#                     ctx.stroke()
 
-                elif b!=b1:
-                    weight = matrix[i,i1]
+#                 elif b!=b1:
+#                     weight = matrix[i,i1]
 
-                    if weight<.2:
-                        continue
+#                     if weight<.2:
+#                         continue
 
-                    ctx.set_line_width(edge_step*weight)
+#                     ctx.set_line_width(edge_step*weight)
 
-                    ctx.move_to(xl+i1*edge_step+edge_padding, yb+edge_padding)
+#                     ctx.move_to(xl+i1*edge_step+edge_padding, yb+edge_padding)
 
-                    # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
-                    # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+#                     # left corner is (xl+i1*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
+#                     # right corner is ((xl+adjcx)+i*edge_step+edge_padding, yt-edge_padding-stepup*(dist))
 
-                    mx = (xl+i*edge_step+edge_padding+(xl+adjcx1)+i1*edge_step+edge_padding)/2
+#                     mx = (xl+i*edge_step+edge_padding+(xl+adjcx1)+i1*edge_step+edge_padding)/2
 
-                    ctx.curve_to(xl+i1*edge_step+edge_padding, yb+edge_padding, xl+i1*edge_step+edge_padding, yb+edge_padding+stepup*(dist),mx, yb+edge_padding+stepup*(dist))
-                    ctx.curve_to(mx, yb+edge_padding+stepup*(dist), (xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding+stepup*(dist),(xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+#                     ctx.curve_to(xl+i1*edge_step+edge_padding, yb+edge_padding, xl+i1*edge_step+edge_padding, yb+edge_padding+stepup*(dist),mx, yb+edge_padding+stepup*(dist))
+#                     ctx.curve_to(mx, yb+edge_padding+stepup*(dist), (xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding+stepup*(dist),(xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
 
 
-                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-                    ctx.stroke()
+#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+#                     ctx.stroke()
                     
-                    ctx.set_line_width(edge_step*2*weight)
-                    ctx.move_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
-                    ctx.line_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
-                    ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
-                    ctx.stroke()
+#                     ctx.set_line_width(edge_step*2*weight)
+#                     ctx.move_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+#                     ctx.line_to((xl+adjcx1)+i*edge_step+edge_padding, yb+edge_padding)
+#                     ctx.set_source_rgba(c[0]/255, c[1]/255, c[2]/255, Ialpha)
+#                     ctx.stroke()
 
-            # adjust the center x 
-            cx += node_size + in_padding
+#             # adjust the center x 
+#             cx += node_size + in_padding
     
-    def draw_matrix(self, ctx, y, behaviors, colors, matrix):
+#     def draw_matrix(self, ctx, y, behaviors, colors, matrix):
 
-        map = sns.color_palette("viridis", as_cmap=True).colors
-        map_len = len(map)
+#         map = sns.color_palette("viridis", as_cmap=True).colors
+#         map_len = len(map)
 
-        width = self.width
-        height = self.height
+#         width = self.width
+#         height = self.height
 
-        node_size = .04
+#         node_size = .04
 
-        padding = 0.003 
+#         padding = 0.003 
 
-        size = node_size*len(behaviors)+padding*(len(behaviors)-1)
+#         size = node_size*len(behaviors)+padding*(len(behaviors)-1)
 
-        cx = .5+node_size/2+padding
+#         cx = .5+node_size/2+padding
 
-        xl = cx - size/2
-        xr = cx + size/2
+#         xl = cx - size/2
+#         xr = cx + size/2
 
-        yt = y - size/2
-        yb = y + size/2
+#         yt = y - size/2
+#         yb = y + size/2
 
-        border_size = padding
-        ctx.set_line_width(border_size)
+#         border_size = padding
+#         ctx.set_line_width(border_size)
 
-        # ctx.rectangle(xl-padding,yt-padding,size+padding*2,size+padding*2)
-        # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-        # ctx.fill()
-        # ctx.stroke()
+#         # ctx.rectangle(xl-padding,yt-padding,size+padding*2,size+padding*2)
+#         # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+#         # ctx.fill()
+#         # ctx.stroke()
 
-        for c in range(len(behaviors)):
-            cl = colors[c]
-            txl = xl-padding + c*(node_size+padding)
-            tyl = yt-padding*2.5-node_size
+#         for c in range(len(behaviors)):
+#             cl = colors[c]
+#             txl = xl-padding + c*(node_size+padding)
+#             tyl = yt-padding*2.5-node_size
 
-            # ctx.rectangle(txl,tyl,node_size+padding*2,node_size+padding*3)
-            # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-            # ctx.fill()
-            # ctx.stroke()
-
-            
-            # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-            # ctx.set_source_rgba(1, 1, 1, 1)
-            # ctx.fill()
-            # ctx.stroke()
+#             # ctx.rectangle(txl,tyl,node_size+padding*2,node_size+padding*3)
+#             # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+#             # ctx.fill()
+#             # ctx.stroke()
 
             
-            ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-            ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
-            ctx.fill_preserve()
-            ctx.set_source_rgba(0, 0, 0, .5)
-            ctx.stroke()
-
-        for c in range(len(behaviors)):
-            cl = colors[c]
-            txl = xl-padding -padding*1.5-node_size
-            tyl = yt-padding + c*(node_size+padding)
-
-            # ctx.rectangle(txl,tyl,node_size+padding*3,node_size+padding*2)
-            # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
-            # ctx.fill()
-            # ctx.stroke()
+#             # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+#             # ctx.set_source_rgba(1, 1, 1, 1)
+#             # ctx.fill()
+#             # ctx.stroke()
 
             
-            # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-            # ctx.set_source_rgba(1, 1, 1, 1)
-            # ctx.fill()
-            # ctx.stroke()
+#             ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+#             ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
+#             ctx.fill_preserve()
+#             ctx.set_source_rgba(0, 0, 0, .5)
+#             ctx.stroke()
+
+#         for c in range(len(behaviors)):
+#             cl = colors[c]
+#             txl = xl-padding -padding*1.5-node_size
+#             tyl = yt-padding + c*(node_size+padding)
+
+#             # ctx.rectangle(txl,tyl,node_size+padding*3,node_size+padding*2)
+#             # ctx.set_source_rgba(50/255, 50/255, 50/255, 1)
+#             # ctx.fill()
+#             # ctx.stroke()
 
             
-            ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
-            ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
-            ctx.fill_preserve()
-            ctx.set_source_rgba(0, 0, 0, .5)
-            ctx.stroke()
+#             # ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+#             # ctx.set_source_rgba(1, 1, 1, 1)
+#             # ctx.fill()
+#             # ctx.stroke()
 
-        i = 0
-        for x in np.arange(0, size, node_size+padding):
-            j = 0
-            for y in np.arange(0, size, node_size+padding):
-                weight = matrix[j,i]
-                c = colors[j]
-                # ctx.rectangle(x+xl,y+yt,node_size,node_size)
-                # ctx.set_source_rgba(0, 0, 0, .5)
-                # ctx.fill()
-                # ctx.stroke()
+            
+#             ctx.rectangle(txl+padding,tyl+padding,node_size,node_size)
+#             ctx.set_source_rgba(cl[0]/255, cl[1]/255, cl[2]/255, .7)
+#             ctx.fill_preserve()
+#             ctx.set_source_rgba(0, 0, 0, .5)
+#             ctx.stroke()
 
-                ctx.rectangle(x+xl,y+yt,node_size,node_size)
-                ctx.set_source_rgba(map[int(weight*map_len)][0],map[int(weight*map_len)][1],map[int(weight*map_len)][2], .7)
-                ctx.fill()
-                ctx.stroke()
-                j+=1
-            i+=1
+#         i = 0
+#         for x in np.arange(0, size, node_size+padding):
+#             j = 0
+#             for y in np.arange(0, size, node_size+padding):
+#                 weight = matrix[j,i]
+#                 c = colors[j]
+#                 # ctx.rectangle(x+xl,y+yt,node_size,node_size)
+#                 # ctx.set_source_rgba(0, 0, 0, .5)
+#                 # ctx.fill()
+#                 # ctx.stroke()
 
-    def transitions(self, behaviors, path):
+#                 ctx.rectangle(x+xl,y+yt,node_size,node_size)
+#                 ctx.set_source_rgba(map[int(weight*map_len)][0],map[int(weight*map_len)][1],map[int(weight*map_len)][2], .7)
+#                 ctx.fill()
+#                 ctx.stroke()
+#                 j+=1
+#             i+=1
 
-        df = pd.read_csv(path)
-        df = df.to_numpy()[1:,1:]
+#     def transitions(self, behaviors, path):
 
-        matrix = np.zeros((len(behaviors), len(behaviors)))
+#         df = pd.read_csv(path)
+#         df = df.to_numpy()[1:,1:]
 
-        linear = []
+#         matrix = np.zeros((len(behaviors), len(behaviors)))
 
-        for i in range(len(df)):
-            linear.append(np.argmax(df[i]))
+#         linear = []
+
+#         for i in range(len(df)):
+#             linear.append(np.argmax(df[i]))
         
-        # calc the transitions
-        linear = np.array(linear)
-        bin_size = self.bin_size
+#         # calc the transitions
+#         linear = np.array(linear)
+#         bin_size = self.bin_size
 
-        jump_size = self.jump_size
+#         jump_size = self.jump_size
 
-        binned = []
+#         binned = []
 
-        for i in range(0,len(linear),bin_size):
+#         for i in range(0,len(linear),bin_size):
 
-            end = i+bin_size
-            if end>len(linear):
-                end = len(linear)
+#             end = i+bin_size
+#             if end>len(linear):
+#                 end = len(linear)
 
-            chunk = linear[i:end]
-            counts = []
-            for b in range(len(behaviors)):
-                counts.append(np.sum(chunk==b))
-            if counts[np.argmax(counts)]==0:
-                binned.append(-1)
-            else:
-                binned.append(np.argmax(counts))
+#             chunk = linear[i:end]
+#             counts = []
+#             for b in range(len(behaviors)):
+#                 counts.append(np.sum(chunk==b))
+#             if counts[np.argmax(counts)]==0:
+#                 binned.append(-1)
+#             else:
+#                 binned.append(np.argmax(counts))
         
-        instances = [0 for b in behaviors]
-        for i in range(len(binned)):
-            instances[binned[i]] += 1
+#         instances = [0 for b in behaviors]
+#         for i in range(len(binned)):
+#             instances[binned[i]] += 1
 
-        for b in range(len(behaviors)):
-            next = [0 for b1 in behaviors]
-            for i in range(len(binned)-jump_size):
-                if b==binned[i]:
-                    next[binned[i+jump_size]] += 1
-            next = np.array(next)
-            next = next/instances[b]
+#         for b in range(len(behaviors)):
+#             next = [0 for b1 in behaviors]
+#             for i in range(len(binned)-jump_size):
+#                 if b==binned[i]:
+#                     next[binned[i+jump_size]] += 1
+#             next = np.array(next)
+#             next = next/instances[b]
 
-            matrix[b,:] = next
+#             matrix[b,:] = next
         
-        self.matrix = matrix
+#         self.matrix = matrix
 
-    def update(self):
+#     def update(self):
 
-        self.bin_size = int(self.bin.get())
-        self.jump_size = int(self.jump.get())
+#         self.bin_size = int(self.bin.get())
+#         self.jump_size = int(self.jump.get())
 
-        self.transitions(self.behaviors, self.path)
-        self.draw()
-        self.load_image()
+#         self.transitions(self.behaviors, self.path)
+#         self.draw()
+#         self.load_image()
 
 class TransitionRaster:
 

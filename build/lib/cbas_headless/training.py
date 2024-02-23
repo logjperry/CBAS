@@ -527,7 +527,7 @@ def create_training_set(recording_name, behaviors=[], project_config='undefined'
     save_config(rp.tsconfig, rp.config_path)
 
 # Exports a training set created from several recordings to the format of deepethogram
-def export_training_set_to_deg(recording_names, output_name, shuffle=True, split_group=True, input_behaviors=None, output_orders=None, output_behaviors=None, destination=None, scale=None, framerate=None, exclude_model_test_set=None, project_config='undefined'):
+def export_training_set_to_deg(recording_names, output_name, shuffle=True, split_group=True, input_behaviors=None, output_orders=None, output_behaviors=None, destination=None, scale=None, framerate=None, model_test_set=None, set='training', project_config='undefined'):
     
     """
     Export a training set to the DEG format.
@@ -554,8 +554,8 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
         The scale of the output video
     framerate: int
         The framerate of the output video
-    exclude_model_test_set: str
-        The name of a model to exclude from the test set
+    model_test_set: str
+        The name of a model to either exclude from the test set or the test set to export
     project_config: str
         The path to the project config file. If 'undefined', the function will assume that the user is located within an active project.
 
@@ -621,11 +621,14 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
     s_dataset_test = None
 
     recording_config = os.path.join(recordings, recording_names[0], 'details.yaml')
-    with open(recording_config, 'r') as file:
-        rconfig = yaml.safe_load(file)
+    if os.path.exists(recording_config):
+        with open(recording_config, 'r') as file:
+            rconfig = yaml.safe_load(file)
+    elif scale is None or framerate is None:
+        raise Exception('Scale and framerate must be defined if set is not standard.')
 
     # gets the test set to exclude
-    if exclude_model_test_set is not None:
+    if model_test_set is not None:
         with open(postprocessors, 'r') as file:
             ppconfig = yaml.safe_load(file)
 
@@ -633,7 +636,7 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
 
         pname = None
         for name in models.keys():
-            if name == exclude_model_test_set:
+            if name == model_test_set:
                 pname = name 
                 break
         
@@ -756,9 +759,11 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
 
                 for b in behaviors:
                     for inst in instances[b]:
-                        if s_dataset_test and inst not in s_dataset_test.instances:
+                        if s_dataset_test and set=='training' and inst not in s_dataset_test.instances:
                             video_dict[inst['video']].append(inst)
-                        elif exclude_model_test_set is None:
+                        elif s_dataset_test and set=='testing' and inst in s_dataset_test.instances:
+                            video_dict[inst['video']].append(inst)
+                        elif model_test_set is None:
                             video_dict[inst['video']].append(inst)
 
 
@@ -871,9 +876,11 @@ def export_training_set_to_deg(recording_names, output_name, shuffle=True, split
 
                 for b in behaviors:
                     for inst in instances[b]:
-                        if s_dataset_test and inst not in s_dataset_test.instances:
+                        if s_dataset_test and set=='training' and inst not in s_dataset_test.instances:
                             video_dict[inst['video']].append(inst)
-                        elif exclude_model_test_set is None:
+                        elif s_dataset_test and set=='testing' and inst in s_dataset_test.instances:
+                            video_dict[inst['video']].append(inst)
+                        elif model_test_set is None:
                             video_dict[inst['video']].append(inst)
 
 
