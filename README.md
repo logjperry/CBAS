@@ -14,7 +14,7 @@
 
 CBAS is a suite of tools for phenotyping complex animal behaviors. It is designed to automate classification of behaviors from active live streams of video data and provide a simple interface for visualizing and analyzing the results. CBAS currently supports automated inferencing from state-of-the-art machine learning vision models including DeepEthogram (DEG) and Deeplabcut (DLC). CBAS also includes an attentive LSTM (A-LSTM) sequence model, which is designed to be more robust and more accurate than the original DEG sequence model. 
 
-Written and maintained solely by Logan Perry, a post-bac in the Jones Lab at Texas A&M University.
+Written and maintained by Logan Perry, a post-bac in the Jones Lab at Texas A&M University.
 
 * CBAS was designed with circadian behavior monitoring in mind! Here's a visual of what CBAS can do (the behaviors are not set in stone, and can be changed to fit the user's needs). 
 <p align="center">
@@ -30,6 +30,58 @@ Written and maintained solely by Logan Perry, a post-bac in the Jones Lab at Tex
 # Installation
 
 A headless version of CBAS is coming soon and will be available via PyPI!
+
+Requirements:
+
+- Python 3.7 or later
+- Conda
+- IPython
+- FFMPEG, with the ffmpeg executable in the system PATH
+- Stand alone installation(s) of Deepethogram (DEG) and/or Deeplabcut (DLC) with working environments
+
+To create A-LSTM models:
+
+- PyTorch with or without CUDA support
+
+
+
+For installation without a PyPI release, download and extract the zipped code for installation. Navigate to the CBAS-main/envs folder and type
+
+``` conda env create -f CBAS.yaml ```
+
+Enter the environment by typing
+
+``` conda activate CBAS ```
+
+If using windows, navigate to the CBAS-main directory and type
+
+``` refresh ```
+
+If using linux, navigate to the CBAS-main directory and type
+
+``` python setup.py bdist_wheel ```
+
+Then, navigate to the dist directory and type
+
+``` pip install *.whl ```
+
+Switch to the DEG and DLC environments by typing
+
+``` conda activate (your DEG env) ``` or ``` conda activate (your DLC env) ```
+
+Install CBAS in these environments by repeating the above installation steps.
+
+
+To test the installation, type
+
+``` ipython ```
+
+Then, type
+
+``` from cbas_headless import * ```
+
+If no errors are thrown, the installation was successful!
+
 
 # Usage
 

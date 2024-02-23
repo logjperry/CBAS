@@ -16,8 +16,15 @@ import json
 from datetime import datetime
 import yaml
 
+"""
+The code below is a modified version of the deepethogram codebase, specifically the deepethogram.gui module.
+Please support the original authors by visiting their repository at https://github.com/jbohnslav/deepethogram.
+Only necessary components have been imported and modified to work in the CBAS inferencing pipeline.
+Importantly, training a DEG model is not possible in this environment, see the original repository for that functionality.
 
 
+Imports are made dynamically to avoid environment collisions between DEG and DLC.
+"""
 
 class headless_deg:
     

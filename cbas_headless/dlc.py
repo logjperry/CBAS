@@ -4,6 +4,10 @@ import sys
 import yaml
 import time
 
+"""
+Imports are made dynamically to avoid environment collisions between DEG and DLC.
+"""
+
 def inference(config_path, name, video_path, storage_path):
     import deeplabcut
 

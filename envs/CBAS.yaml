@@ -1,4 +1,4 @@
-name: CBAS_env1
+name: CBAS
 channels:
   - conda-forge
   - defaults
